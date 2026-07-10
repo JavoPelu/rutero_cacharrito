@@ -16,6 +16,7 @@
             <div><strong id="userName"></strong><div class="sidebar-subtitle" id="userRole"></div></div>
           </div>
           <div class="navbar-actions">
+            <a id="adminHomeBtn" class="btn" href="dashboard-admin.html" style="display: none;">Panel admin</a>
             <button class="btn icon-btn" data-theme-toggle title="Tema">☀</button>
             <button id="logoutBtn" class="btn">Salir</button>
           </div>
@@ -33,6 +34,17 @@
             <article class="metric"><div class="metric-label">Visitas</div><div id="metricVisitas" class="metric-value">0</div><div class="metric-note">Historial total</div></article>
             <article class="metric"><div class="metric-label">Compras</div><div id="metricCompras" class="metric-value">0</div><div class="metric-note">Cierres reportados</div></article>
           </div>
+          <section class="panel" style="margin-bottom: 18px;">
+            <div class="panel-header">
+              <h2 class="panel-title">Gestion rapida</h2>
+              <div class="toolbar" style="padding: 0; border: 0;">
+                <a class="btn btn-primary" href="clientes.html">Clientes</a>
+                <a class="btn" href="vendedores.html">Vendedores</a>
+                <a class="btn" href="municipios.html">Municipios</a>
+                <a class="btn" href="visitas.html">Visitas</a>
+              </div>
+            </div>
+          </section>
           <section class="panel">
             <div class="panel-header"><h2 class="panel-title">Ultimas visitas</h2></div>
             <div class="table-wrap">

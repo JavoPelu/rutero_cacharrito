@@ -44,15 +44,28 @@ function getToken() {
 
 function getUser() {
   try {
-    return JSON.parse(localStorage.getItem(USER_KEY) || 'null');
+    const user = JSON.parse(localStorage.getItem(USER_KEY) || 'null');
+    return user ? { ...user, rol: normalizeRole(user.rol) } : null;
   } catch (_error) {
     return null;
   }
 }
 
 function setUserSession(data) {
+  data.usuario.rol = normalizeRole(data.usuario.rol);
   localStorage.setItem(TOKEN_KEY, data.token);
   localStorage.setItem(USER_KEY, JSON.stringify(data.usuario));
+}
+
+function normalizeRole(role = '') {
+  const value = String(role).trim().toLowerCase();
+  if (['admin', 'administrador', 'administrator'].includes(value)) return 'administrador';
+  if (['vendedor', 'seller', 'ventas'].includes(value)) return 'vendedor';
+  return value;
+}
+
+function isAdmin(user = getUser()) {
+  return normalizeRole(user?.rol) === 'administrador';
 }
 
 function escapeHtml(value = '') {
@@ -149,8 +162,9 @@ function requireAuth(roles = []) {
     location.href = 'login.html';
     return;
   }
-  if (roles.length && !roles.includes(user.rol)) {
-    location.href = user.rol === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html';
+  const role = normalizeRole(user.rol);
+  if (roles.length && !roles.map(normalizeRole).includes(role)) {
+    location.href = role === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html';
   }
 }
 
@@ -159,14 +173,15 @@ function shell() {
   const sidebar = qs('#sidebar');
   if (!sidebar || !user) return;
   const current = location.pathname.split('/').pop() || 'dashboard-admin.html';
-  const roleRoutes = routes[user.rol] || routes.vendedor;
+  const role = normalizeRole(user.rol);
+  const roleRoutes = routes[role] || routes.vendedor;
 
   sidebar.innerHTML = `
     <div class="sidebar-header">
       <div id="brandMark" class="brand-mark">RC</div>
       <div>
         <div id="businessName" class="sidebar-title">Rutero Cacharrito</div>
-        <div class="sidebar-subtitle">${user.rol}</div>
+        <div class="sidebar-subtitle">${role}</div>
       </div>
     </div>
     <nav class="nav-menu">
@@ -177,7 +192,8 @@ function shell() {
   `;
 
   qs('#userName') && (qs('#userName').textContent = user.nombres || user.usuario);
-  qs('#userRole') && (qs('#userRole').textContent = user.rol);
+  qs('#userRole') && (qs('#userRole').textContent = role);
+  qs('#adminHomeBtn') && (qs('#adminHomeBtn').style.display = role === 'administrador' ? '' : 'none');
   qs('#logoutBtn')?.addEventListener('click', logout);
   qs('#mobileMenu')?.addEventListener('click', () => sidebar.classList.toggle('open'));
   loadBusinessBrand();
@@ -336,7 +352,7 @@ async function initLogin() {
   if (!location.pathname.endsWith('login.html')) return;
   if (getToken() && getUser()) {
     const user = getUser();
-    location.href = user.rol === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html';
+    location.href = normalizeRole(user.rol) === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html';
     return;
   }
   qs('#loginForm').addEventListener('submit', async (event) => {
@@ -347,7 +363,7 @@ async function initLogin() {
         body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget)))
       });
       setUserSession(data);
-      location.href = data.usuario.rol === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html';
+      location.href = normalizeRole(data.usuario.rol) === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html';
     } catch (error) {
       alertMessage(error.message, 'error');
     }
@@ -557,7 +573,7 @@ async function loadClientes() {
   if (!document.body.dataset.page?.includes('clientes')) return;
   requireAuth(['administrador', 'vendedor']);
   const user = getUser();
-  const canEdit = user.rol === 'administrador';
+  const canEdit = isAdmin(user);
   qs('#newClientBtn') && (qs('#newClientBtn').style.display = '');
   const requests = [apiFetch('/clientes'), loadMunicipios()];
   if (canEdit) requests.push(apiFetch('/vendedores'));
@@ -594,7 +610,7 @@ async function loadClientes() {
 
 function clientModal(client = {}) {
   const user = getUser();
-  const canAssignSeller = user?.rol === 'administrador';
+  const canAssignSeller = isAdmin(user);
   openModal(
     client.id ? 'Editar cliente' : 'Nuevo cliente',
     `
@@ -774,10 +790,10 @@ function initConfiguracion() {
   if (!document.body.dataset.page?.includes('configuracion')) return;
   requireAuth(['administrador', 'vendedor']);
   const user = getUser();
-  qs('#businessPanel') && (qs('#businessPanel').style.display = user.rol === 'administrador' ? '' : 'none');
+  qs('#businessPanel') && (qs('#businessPanel').style.display = isAdmin(user) ? '' : 'none');
   qs('#profileName').textContent = user.nombres || user.usuario;
   qs('#profileUser').textContent = user.usuario;
-  qs('#profileRole').textContent = user.rol;
+  qs('#profileRole').textContent = normalizeRole(user.rol);
   qs('#passwordForm')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     try {
