@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(auth);
 
 router.get('/', roles('administrador', 'vendedor'), clientesController.listar);
-router.post('/', roles('administrador'), clientesController.crear);
+router.post('/', roles('administrador', 'vendedor'), clientesController.crear);
 router.put('/:id', roles('administrador'), clientesController.actualizar);
 router.delete('/:id', roles('administrador'), clientesController.eliminar);
 

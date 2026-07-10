@@ -558,7 +558,7 @@ async function loadClientes() {
   requireAuth(['administrador', 'vendedor']);
   const user = getUser();
   const canEdit = user.rol === 'administrador';
-  qs('#newClientBtn') && (qs('#newClientBtn').style.display = canEdit ? '' : 'none');
+  qs('#newClientBtn') && (qs('#newClientBtn').style.display = '');
   const requests = [apiFetch('/clientes'), loadMunicipios()];
   if (canEdit) requests.push(apiFetch('/vendedores'));
   const [clientes, , vendedores = []] = await Promise.all(requests);
@@ -593,6 +593,8 @@ async function loadClientes() {
 }
 
 function clientModal(client = {}) {
+  const user = getUser();
+  const canAssignSeller = user?.rol === 'administrador';
   openModal(
     client.id ? 'Editar cliente' : 'Nuevo cliente',
     `
@@ -603,15 +605,13 @@ function clientModal(client = {}) {
             ${municipioOptions(client.municipio_codigo)}
           </select>
         </label>
-        <label>Asignar vendedor
-          <select class="select" name="vendedor_id">
-            <option value="">Sin asignar</option>
-            ${vendedorOptions(client.vendedor_id)}
-          </select>
-        </label>
+        ${canAssignSeller ? `<label>Asignar vendedor
+            <select class="select" name="vendedor_id">
+              <option value="">Sin asignar</option>
+              ${vendedorOptions(client.vendedor_id)}
+            </select>
+          </label>` : ''}
         <label>Nombre comercial <input class="input" name="nombre_comercial" value="${escapeHtml(client.nombre_comercial || '')}" required></label>
-        <label>Razon social <input class="input" name="razon_social" value="${escapeHtml(client.razon_social || '')}"></label>
-        <label>NIT <input class="input" name="nit" value="${escapeHtml(client.nit || '')}"></label>
         <label>Contacto <input class="input" name="contacto" value="${escapeHtml(client.contacto || '')}"></label>
         <label>Telefono <input class="input" name="telefono" value="${escapeHtml(client.telefono || '')}"></label>
         <label>Foto cliente <input class="input" name="foto" type="file" accept="image/png,image/jpeg,image/webp"></label>
@@ -672,12 +672,13 @@ function sellerModal(seller = {}) {
         <label>Documento <input class="input" name="documento" value="${seller.documento || ''}"></label>
         <label>Usuario <input class="input" name="usuario" value="${seller.usuario || ''}" required></label>
         <label>Foto <input class="input" name="foto" type="file" accept="image/png,image/jpeg,image/webp"></label>
-        ${seller.id ? '<label>Estado <select class="select" name="activo"><option value="true">Activo</option><option value="false">Inactivo</option></select></label>' : '<label>Password <input class="input" name="password" type="password" value="123456" required></label>'}
+        ${seller.id ? `<label>Nueva contrasena <input class="input" name="password" type="password" minlength="6" placeholder="Dejar vacia para conservar"></label><label>Estado <select class="select" name="activo"><option value="true" ${seller.activo !== false ? 'selected' : ''}>Activo</option><option value="false" ${seller.activo === false ? 'selected' : ''}>Inactivo</option></select></label>` : '<label>Password <input class="input" name="password" type="password" value="123456" required></label>'}
       </div>
     `,
     async (form) => {
       const payload = Object.fromEntries(form.entries());
       delete payload.foto;
+      if (!payload.password) delete payload.password;
       const fotoUrl = await fileToDataUrl(form.get('foto'));
       if (fotoUrl) payload.foto_url = fotoUrl;
       if ('activo' in payload) payload.activo = payload.activo === 'true';

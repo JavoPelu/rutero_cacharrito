@@ -64,9 +64,15 @@ async function crear(data) {
 }
 
 async function actualizar(id, data) {
-  const { nombre, documento, usuario, foto_url, activo } = data;
-  if (!nombre && !documento && !usuario && !foto_url && typeof activo !== 'boolean') {
+  const { nombre, documento, usuario, password, foto_url, activo } = data;
+  if (!nombre && !documento && !usuario && !password && !foto_url && typeof activo !== 'boolean') {
     const error = new Error('No hay datos para actualizar');
+    error.status = 400;
+    throw error;
+  }
+
+  if (password && password.length < 6) {
+    const error = new Error('La contrasena debe tener minimo 6 caracteres');
     error.status = 400;
     throw error;
   }
@@ -93,18 +99,21 @@ async function actualizar(id, data) {
       );
     }
 
+    const passwordHash = password ? await bcrypt.hash(password, 12) : null;
     await client.query(
       `UPDATE usuarios
        SET nombres = COALESCE($1, nombres),
            documento = COALESCE($2, documento),
            usuario = COALESCE($3, usuario),
-           activo = COALESCE($4, activo),
+           password_hash = COALESCE($4, password_hash),
+           activo = COALESCE($5, activo),
            actualizado_en = NOW()
-       WHERE id = $5`,
+       WHERE id = $6`,
       [
         nombre || null,
         documento || null,
         usuario || null,
+        passwordHash,
         typeof activo === 'boolean' ? activo : null,
         found.rows[0].usuario_id
       ]

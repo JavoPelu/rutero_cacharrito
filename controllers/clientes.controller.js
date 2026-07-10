@@ -10,7 +10,7 @@ async function listar(req, res, next) {
 
 async function crear(req, res, next) {
   try {
-    res.status(201).json({ ok: true, data: await clientesService.crear(req.body) });
+    res.status(201).json({ ok: true, data: await clientesService.crear(req.body, req.user) });
   } catch (error) {
     next(error);
   }

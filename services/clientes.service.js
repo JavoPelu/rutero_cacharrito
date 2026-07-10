@@ -50,7 +50,7 @@ async function listar(user = {}) {
   return result.rows;
 }
 
-async function crear(data) {
+async function crear(data, user = {}) {
   const {
     nombre_comercial,
     razon_social,
@@ -64,6 +64,13 @@ async function crear(data) {
     longitud
   } = data;
   const municipioId = await obtenerMunicipioId(data);
+  const vendedorId = user.rol === 'vendedor' ? user.vendedor_id : vendedor_id;
+
+  if (user.rol === 'vendedor' && !user.vendedor_id) {
+    const error = new Error('El usuario vendedor no tiene vendedor asociado');
+    error.status = 400;
+    throw error;
+  }
 
   if (!municipioId || !nombre_comercial || !validarCoordenadas(latitud, longitud)) {
     const error = new Error('Municipio, nombre comercial y coordenadas validas son obligatorios');
@@ -78,7 +85,7 @@ async function crear(data) {
      RETURNING *`,
     [
       municipioId,
-      vendedor_id || null,
+      vendedorId || null,
       nombre_comercial,
       razon_social || null,
       nit || null,
