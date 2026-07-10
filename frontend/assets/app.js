@@ -223,6 +223,31 @@ function shortText(value, max = 48) {
   return text.length > max ? `${escapeHtml(text.slice(0, max))}...` : escapeHtml(text);
 }
 
+function fullObservation(value) {
+  if (!value) return '-';
+  const text = escapeHtml(value);
+  if (String(value).length <= 70) {
+    return `<span class="observation-text">${text}</span>`;
+  }
+  return `
+    <details class="observation-details">
+      <summary>${shortText(value, 70)}</summary>
+      <div>${text}</div>
+    </details>
+  `;
+}
+
+function mapLink(row) {
+  const lat = Number(row.latitud);
+  const lng = Number(row.longitud);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return '-';
+  }
+  const label = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  return `<a class="map-link" href="${url}" target="_blank" rel="noopener">Ver mapa<span>${label}</span></a>`;
+}
+
 function renderTable({ columns, actions = () => '' }) {
   const tbody = qs('#tableBody');
   const pageInfo = qs('#pageInfo');
@@ -235,7 +260,7 @@ function renderTable({ columns, actions = () => '' }) {
         .map(
           (row) => `
             <tr>
-              ${columns.map((column) => `<td>${column.render ? column.render(row) : row[column.key] ?? '-'}</td>`).join('')}
+              ${columns.map((column) => `<td class="${column.className || ''}">${column.render ? column.render(row) : row[column.key] ?? '-'}</td>`).join('')}
               <td><div class="table-actions">${actions(row)}</div></td>
             </tr>
           `
@@ -349,7 +374,9 @@ async function loadDashboardAdmin() {
       { key: 'vendedor', render: (row) => row.vendedor || '-' },
       { key: 'fecha', render: (row) => formatDate(row.fecha) },
       { key: 'hora_llegada' },
-      { key: 'observaciones', render: (row) => shortText(row.observaciones) },
+      { key: 'observaciones', className: 'observation-cell', render: (row) => fullObservation(row.observaciones) },
+      { key: 'proxima_visita', render: (row) => formatDate(row.proxima_visita) },
+      { key: 'ubicacion', render: mapLink },
       { key: 'compro', render: visitStatusBadge }
     ]
   });
@@ -361,7 +388,9 @@ function vendedorVisitColumns() {
     { key: 'fecha', render: (row) => formatDate(row.fecha) },
     { key: 'hora_llegada' },
     { key: 'hora_salida', render: (row) => row.hora_salida || '-' },
-    { key: 'observaciones', render: (row) => shortText(row.observaciones) },
+    { key: 'observaciones', className: 'observation-cell', render: (row) => fullObservation(row.observaciones) },
+    { key: 'proxima_visita', render: (row) => formatDate(row.proxima_visita) },
+    { key: 'ubicacion', render: mapLink },
     { key: 'compro', render: visitStatusBadge }
   ];
 }
@@ -730,7 +759,9 @@ async function loadVisitas() {
       { key: 'fecha', render: (row) => formatDate(row.fecha) },
       { key: 'hora_llegada' },
       { key: 'hora_salida', render: (row) => row.hora_salida || '-' },
-      { key: 'observaciones', render: (row) => shortText(row.observaciones) },
+      { key: 'observaciones', className: 'observation-cell', render: (row) => fullObservation(row.observaciones) },
+      { key: 'proxima_visita', render: (row) => formatDate(row.proxima_visita) },
+      { key: 'ubicacion', render: mapLink },
       { key: 'compro', render: visitStatusBadge }
     ]
   });

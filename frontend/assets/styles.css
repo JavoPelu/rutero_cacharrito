@@ -424,6 +424,46 @@ td {
   white-space: nowrap;
 }
 
+.observation-cell {
+  min-width: 260px;
+  max-width: 420px;
+  white-space: normal;
+  vertical-align: top;
+}
+
+.observation-text,
+.observation-details {
+  display: block;
+  max-width: 420px;
+  line-height: 1.42;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.observation-details summary {
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.observation-details div {
+  margin-top: 8px;
+  color: var(--text);
+}
+
+.map-link {
+  display: inline-grid;
+  gap: 2px;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.map-link span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 th {
   color: var(--muted);
   font-size: 12px;
