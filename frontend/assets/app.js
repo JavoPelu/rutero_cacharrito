@@ -17,17 +17,17 @@ const state = {
 
 const routes = {
   admin: [
-    ['dashboard-admin.html', 'Inicio', 'IN'],
-    ['clientes.html', 'Clientes', 'CL'],
-    ['vendedores.html', 'Vendedores', 'VE'],
-    ['municipios.html', 'Municipios', 'MU'],
-    ['visitas.html', 'Visitas', 'VI'],
-    ['configuracion.html', 'Configuracion', 'CO']
+    ['dashboard-admin.html', 'Inicio', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>'],
+    ['clientes.html', 'Clientes', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9 20v-6h6v6"/></svg>'],
+    ['vendedores.html', 'Vendedores', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>'],
+    ['municipios.html', 'Municipios', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>'],
+    ['visitas.html', 'Visitas', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="18" cy="18" r="2"/></svg>'],
+    ['configuracion.html', 'Configuracion', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/><path d="M4 12h2m12 0h2M12 4v2m0 12v2M6.3 6.3l1.4 1.4m8.6 8.6 1.4 1.4m0-11.4-1.4 1.4m-8.6 8.6-1.4 1.4"/></svg>']
   ],
   vendedor: [
-    ['dashboard-vendedor.html', 'Mi ruta', 'IN'],
-    ['clientes.html', 'Clientes', 'CL'],
-    ['configuracion.html', 'Configuracion', 'CO']
+    ['dashboard-vendedor.html', 'Mi ruta', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>'],
+    ['clientes.html', 'Clientes', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9 20v-6h6v6"/></svg>'],
+    ['configuracion.html', 'Configuracion', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/><path d="M4 12h2m12 0h2M12 4v2m0 12v2M6.3 6.3l1.4 1.4m8.6 8.6 1.4 1.4m0-11.4-1.4 1.4m-8.6 8.6-1.4 1.4"/></svg>']
   ]
 };
 function qs(selector, root = document) {
@@ -210,6 +210,19 @@ function boolBadge(value) {
   return value ? '<span class="badge success">Activo</span>' : '<span class="badge danger">Inactivo</span>';
 }
 
+function visitStatusBadge(row) {
+  if (!row.hora_salida) {
+    return '<span class="badge warning">En curso</span>';
+  }
+  return row.compro ? '<span class="badge success">Compr&oacute;</span>' : '<span class="badge danger">No compr&oacute;</span>';
+}
+
+function shortText(value, max = 48) {
+  if (!value) return '-';
+  const text = String(value);
+  return text.length > max ? `${escapeHtml(text.slice(0, max))}...` : escapeHtml(text);
+}
+
 function renderTable({ columns, actions = () => '' }) {
   const tbody = qs('#tableBody');
   const pageInfo = qs('#pageInfo');
@@ -336,8 +349,37 @@ async function loadDashboardAdmin() {
       { key: 'vendedor', render: (row) => row.vendedor || '-' },
       { key: 'fecha', render: (row) => formatDate(row.fecha) },
       { key: 'hora_llegada' },
-      { key: 'compro', render: (row) => (row.compro ? '<span class="badge success">Compro</span>' : '<span class="badge warning">Pendiente/No</span>') }
+      { key: 'observaciones', render: (row) => shortText(row.observaciones) },
+      { key: 'compro', render: visitStatusBadge }
     ]
+  });
+}
+
+function vendedorVisitColumns() {
+  return [
+    { key: 'cliente', render: (row) => row.cliente || '-' },
+    { key: 'fecha', render: (row) => formatDate(row.fecha) },
+    { key: 'hora_llegada' },
+    { key: 'hora_salida', render: (row) => row.hora_salida || '-' },
+    { key: 'observaciones', render: (row) => shortText(row.observaciones) },
+    { key: 'compro', render: visitStatusBadge }
+  ];
+}
+
+function vendedorVisitActions(row) {
+  return !row.hora_salida ? `<button class="btn btn-primary" data-end-visit="${row.id}">Finalizar</button>` : '';
+}
+
+async function refreshVendedorVisits() {
+  const user = getUser();
+  const visitas = await apiFetch(`/visitas/vendedor/${user.vendedor_id || user.id}`).catch(() => []);
+  qs('#metricMisVisitas') && (qs('#metricMisVisitas').textContent = visitas.length);
+  qs('#metricPendientes') && (qs('#metricPendientes').textContent = visitas.filter((item) => !item.hora_salida).length);
+  state.rows = visitas;
+  state.filtered = visitas;
+  renderTable({
+    columns: vendedorVisitColumns(),
+    actions: vendedorVisitActions
   });
 }
 
@@ -345,31 +387,10 @@ async function loadDashboardVendedor() {
   if (!document.body.dataset.page?.includes('dashboard-vendedor')) return;
   requireAuth(['vendedor', 'administrador']);
   await populateClientes('#clienteVisita');
-  const user = getUser();
-  const visitas = await apiFetch(`/visitas/vendedor/${user.vendedor_id || user.id}`).catch(() => []);
-  qs('#metricMisVisitas').textContent = visitas.length;
-  qs('#metricPendientes').textContent = visitas.filter((item) => !item.hora_salida).length;
-  state.rows = visitas;
-  state.filtered = visitas;
-  renderTable({
-    columns: [
-      { key: 'cliente', render: (row) => row.cliente || '-' },
-      { key: 'fecha', render: (row) => formatDate(row.fecha) },
-      { key: 'hora_llegada' },
-      { key: 'hora_salida', render: (row) => row.hora_salida || '-' },
-      { key: 'compro', render: (row) => (row.compro ? '<span class="badge success">Compro</span>' : '<span class="badge warning">Sin cierre</span>') }
-    ],
-    actions: (row) => (!row.hora_salida ? `<button class="btn btn-primary" data-end-visit="${row.id}">Finalizar</button>` : '')
-  });
+  await refreshVendedorVisits();
   bindTableControls(() => renderTable({
-    columns: [
-      { key: 'cliente', render: (row) => row.cliente || '-' },
-      { key: 'fecha', render: (row) => formatDate(row.fecha) },
-      { key: 'hora_llegada' },
-      { key: 'hora_salida', render: (row) => row.hora_salida || '-' },
-      { key: 'compro', render: (row) => (row.compro ? '<span class="badge success">Compro</span>' : '<span class="badge warning">Sin cierre</span>') }
-    ],
-    actions: (row) => (!row.hora_salida ? `<button class="btn btn-primary" data-end-visit="${row.id}">Finalizar</button>` : '')
+    columns: vendedorVisitColumns(),
+    actions: vendedorVisitActions
   }));
   qs('#startVisitForm').addEventListener('submit', startVisit);
   document.addEventListener('click', (event) => {
@@ -455,6 +476,9 @@ async function startVisit(event) {
     state.activeVisit = visit;
     qs('#visitStatus').innerHTML = `Visita iniciada a las <strong>${visit.hora_llegada}</strong>. GPS: ${Number(visit.latitud).toFixed(5)}, ${Number(visit.longitud).toFixed(5)}`;
     alertMessage('Visita iniciada correctamente');
+    event.currentTarget.reset();
+    await populateClientes('#clienteVisita');
+    await refreshVendedorVisits();
   } catch (error) {
     alertMessage(error.message || 'No fue posible iniciar la visita', 'error');
   }
@@ -472,8 +496,8 @@ async function finishVisit(id = null) {
       <div class="form-grid">
         <label>Resultado
           <select class="select" name="compro" required>
-            <option value="true">Cliente compro</option>
-            <option value="false">Cliente no compro</option>
+            <option value="true">Cliente compr&oacute;</option>
+            <option value="false">Cliente no compr&oacute;</option>
           </select>
         </label>
         <label>Proxima visita
@@ -495,7 +519,7 @@ async function finishVisit(id = null) {
         })
       });
       alertMessage('Visita finalizada');
-      location.reload();
+      await refreshVendedorVisits();
     }
   );
 }
@@ -706,7 +730,8 @@ async function loadVisitas() {
       { key: 'fecha', render: (row) => formatDate(row.fecha) },
       { key: 'hora_llegada' },
       { key: 'hora_salida', render: (row) => row.hora_salida || '-' },
-      { key: 'compro', render: (row) => (row.compro ? '<span class="badge success">Compro</span>' : '<span class="badge warning">No/Pendiente</span>') }
+      { key: 'observaciones', render: (row) => shortText(row.observaciones) },
+      { key: 'compro', render: visitStatusBadge }
     ]
   });
   render();
