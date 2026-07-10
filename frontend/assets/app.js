@@ -218,6 +218,17 @@ function formatDate(value) {
   return String(value).slice(0, 10);
 }
 
+function todayISO() {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${today.getFullYear()}-${month}-${day}`;
+}
+
+function dateOnly(value) {
+  return value ? String(value).slice(0, 10) : '';
+}
+
 function formatTime(date = new Date()) {
   return date.toTimeString().slice(0, 8);
 }
@@ -230,7 +241,13 @@ function visitStatusBadge(row) {
   if (!row.hora_salida) {
     return '<span class="badge warning">En curso</span>';
   }
-  return row.compro ? '<span class="badge success">Compr&oacute;</span>' : '<span class="badge danger">No compr&oacute;</span>';
+  const estado = String(row.estado || '').toLowerCase();
+  if (estado === 'compro') return '<span class="badge success">Compr&oacute;</span>';
+  if (estado === 'no_compro') return '<span class="badge danger">No Compr&oacute;</span>';
+  if (estado === 'cerrado') return '<span class="badge success">Cerrado</span>';
+  if (estado === 'reprogramado') return '<span class="badge warning">Reprogramado</span>';
+  if (estado === 'otro') return '<span class="badge">Otro</span>';
+  return row.compro ? '<span class="badge success">Compr&oacute;</span>' : '<span class="badge danger">No Compr&oacute;</span>';
 }
 
 function shortText(value, max = 48) {
@@ -293,6 +310,7 @@ function renderTable({ columns, actions = () => '' }) {
 function bindTableControls(render) {
   qs('#searchInput')?.addEventListener('input', applyFilters(render));
   qsa('[data-filter]').forEach((filter) => filter.addEventListener('change', applyFilters(render)));
+  qsa('[data-date-from], [data-date-to]').forEach((filter) => filter.addEventListener('change', applyFilters(render)));
   qs('#prevPage')?.addEventListener('click', () => {
     state.page = Math.max(1, state.page - 1);
     render();
@@ -307,6 +325,8 @@ function bindTableControls(render) {
 function applyFilters(render) {
   return () => {
     const search = (qs('#searchInput')?.value || '').trim().toLowerCase();
+    const dateFrom = qs('[data-date-from]')?.value || '';
+    const dateTo = qs('[data-date-to]')?.value || '';
     state.filtered = state.rows.filter((row) => {
       const matchesSearch = !search || JSON.stringify(row).toLowerCase().includes(search);
       const matchesFilters = qsa('[data-filter]').every((filter) => {
@@ -314,7 +334,10 @@ function applyFilters(render) {
         const key = filter.dataset.filter;
         return String(row[key]) === filter.value;
       });
-      return matchesSearch && matchesFilters;
+      const rowDate = dateOnly(row.fecha);
+      const matchesDateFrom = !dateFrom || (rowDate && rowDate >= dateFrom);
+      const matchesDateTo = !dateTo || (rowDate && rowDate <= dateTo);
+      return matchesSearch && matchesFilters && matchesDateFrom && matchesDateTo;
     });
     state.page = 1;
     render();
@@ -378,24 +401,35 @@ async function loadDashboardAdmin() {
     apiFetch('/vendedores'),
     apiFetch('/visitas')
   ]);
-  qs('#metricClientes').textContent = clientes.length;
-  qs('#metricVendedores').textContent = vendedores.filter((item) => item.activo).length;
-  qs('#metricVisitas').textContent = visitas.length;
-  qs('#metricCompras').textContent = visitas.filter((item) => item.compro).length;
-  state.rows = visitas.slice(0, 8);
-  state.filtered = state.rows;
-  renderTable({
-    columns: [
-      { key: 'cliente', render: (row) => row.cliente || '-' },
-      { key: 'vendedor', render: (row) => row.vendedor || '-' },
-      { key: 'fecha', render: (row) => formatDate(row.fecha) },
-      { key: 'hora_llegada' },
-      { key: 'observaciones', className: 'observation-cell', render: (row) => fullObservation(row.observaciones) },
-      { key: 'proxima_visita', render: (row) => formatDate(row.proxima_visita) },
-      { key: 'ubicacion', render: mapLink },
-      { key: 'compro', render: visitStatusBadge }
-    ]
-  });
+  const adminDateFilter = qs('#adminDateFilter');
+  if (adminDateFilter && !adminDateFilter.value) adminDateFilter.value = todayISO();
+
+  const renderAdminDashboard = () => {
+    const selectedDate = adminDateFilter?.value || '';
+    const visitasFiltradas = selectedDate ? visitas.filter((item) => dateOnly(item.fecha) === selectedDate) : visitas;
+
+    qs('#metricClientes').textContent = clientes.length;
+    qs('#metricVendedores').textContent = vendedores.filter((item) => item.activo).length;
+    qs('#metricVisitas').textContent = visitasFiltradas.length;
+    qs('#metricCompras').textContent = visitasFiltradas.filter((item) => item.estado === 'compro' || (!item.estado && item.compro)).length;
+    state.rows = visitasFiltradas.slice(0, 8);
+    state.filtered = state.rows;
+    renderTable({
+      columns: [
+        { key: 'cliente', render: (row) => row.cliente || '-' },
+        { key: 'vendedor', render: (row) => row.vendedor || '-' },
+        { key: 'fecha', render: (row) => formatDate(row.fecha) },
+        { key: 'hora_llegada' },
+        { key: 'observaciones', className: 'observation-cell', render: (row) => fullObservation(row.observaciones) },
+        { key: 'proxima_visita', render: (row) => formatDate(row.proxima_visita) },
+        { key: 'ubicacion', render: mapLink },
+        { key: 'estado', render: visitStatusBadge }
+      ]
+    });
+  };
+
+  renderAdminDashboard();
+  adminDateFilter?.addEventListener('change', renderAdminDashboard);
 }
 
 function vendedorVisitColumns() {
@@ -407,7 +441,7 @@ function vendedorVisitColumns() {
     { key: 'observaciones', className: 'observation-cell', render: (row) => fullObservation(row.observaciones) },
     { key: 'proxima_visita', render: (row) => formatDate(row.proxima_visita) },
     { key: 'ubicacion', render: mapLink },
-    { key: 'compro', render: visitStatusBadge }
+    { key: 'estado', render: visitStatusBadge }
   ];
 }
 
@@ -415,28 +449,32 @@ function vendedorVisitActions(row) {
   return !row.hora_salida ? `<button class="btn btn-primary" data-end-visit="${row.id}">Finalizar</button>` : '';
 }
 
-async function refreshVendedorVisits() {
-  const user = getUser();
-  const visitas = await apiFetch(`/visitas/vendedor/${user.vendedor_id || user.id}`).catch(() => []);
-  qs('#metricMisVisitas') && (qs('#metricMisVisitas').textContent = visitas.length);
-  qs('#metricPendientes') && (qs('#metricPendientes').textContent = visitas.filter((item) => !item.hora_salida).length);
-  state.rows = visitas;
-  state.filtered = visitas;
+function renderVendedorVisitsTable() {
   renderTable({
     columns: vendedorVisitColumns(),
     actions: vendedorVisitActions
   });
+  qs('#metricMisVisitas') && (qs('#metricMisVisitas').textContent = state.filtered.length);
+  qs('#metricPendientes') && (qs('#metricPendientes').textContent = state.filtered.filter((item) => !item.hora_salida).length);
+}
+
+async function refreshVendedorVisits() {
+  const user = getUser();
+  const visitas = await apiFetch(`/visitas/vendedor/${user.vendedor_id || user.id}`).catch(() => []);
+  state.rows = visitas;
+  state.filtered = visitas;
+  applyFilters(renderVendedorVisitsTable)();
 }
 
 async function loadDashboardVendedor() {
   if (!document.body.dataset.page?.includes('dashboard-vendedor')) return;
   requireAuth(['vendedor', 'administrador']);
   await populateClientes('#clienteVisita');
+  qsa('[data-date-from], [data-date-to]').forEach((filter) => {
+    if (!filter.value) filter.value = todayISO();
+  });
   await refreshVendedorVisits();
-  bindTableControls(() => renderTable({
-    columns: vendedorVisitColumns(),
-    actions: vendedorVisitActions
-  }));
+  bindTableControls(renderVendedorVisitsTable);
   qs('#startVisitForm').addEventListener('submit', startVisit);
   document.addEventListener('click', (event) => {
     const button = event.target.closest('[data-end-visit]');
@@ -539,10 +577,13 @@ async function finishVisit(id = null) {
     'Finalizar visita',
     `
       <div class="form-grid">
-        <label>Resultado
-          <select class="select" name="compro" required>
-            <option value="true">Cliente compr&oacute;</option>
-            <option value="false">Cliente no compr&oacute;</option>
+        <label>Estado
+          <select class="select" name="estado" required>
+            <option value="compro">Compr&oacute;</option>
+            <option value="no_compro">No Compr&oacute;</option>
+            <option value="cerrado">Cerrado</option>
+            <option value="reprogramado">Reprogramado</option>
+            <option value="otro">Otro</option>
           </select>
         </label>
         <label>Proxima visita
@@ -558,7 +599,8 @@ async function finishVisit(id = null) {
         method: 'PUT',
         body: JSON.stringify({
           hora_salida: formatTime(new Date()),
-          compro: form.get('compro') === 'true',
+          estado: form.get('estado'),
+          compro: form.get('estado') === 'compro',
           observaciones: formValue(form, 'observaciones'),
           proxima_visita: formValue(form, 'proxima_visita')
         })
@@ -767,6 +809,9 @@ async function loadVisitas() {
   if (!document.body.dataset.page?.includes('visitas')) return;
   requireAuth(['administrador']);
   await Promise.all([populateClientes('#filterCliente'), populateVendedores('#filterVendedor')]);
+  qsa('[data-date-from], [data-date-to]').forEach((filter) => {
+    if (!filter.value) filter.value = todayISO();
+  });
   state.rows = await apiFetch('/visitas');
   state.filtered = state.rows;
   const render = () => renderTable({
@@ -779,10 +824,10 @@ async function loadVisitas() {
       { key: 'observaciones', className: 'observation-cell', render: (row) => fullObservation(row.observaciones) },
       { key: 'proxima_visita', render: (row) => formatDate(row.proxima_visita) },
       { key: 'ubicacion', render: mapLink },
-      { key: 'compro', render: visitStatusBadge }
+      { key: 'estado', render: visitStatusBadge }
     ]
   });
-  render();
+  applyFilters(render)();
   bindTableControls(render);
 }
 

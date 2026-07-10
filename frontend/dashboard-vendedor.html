@@ -49,7 +49,11 @@
           </section>
           <section class="panel">
             <div class="panel-header"><h2 class="panel-title">Historial de visitas</h2></div>
-            <div class="toolbar"><input id="searchInput" class="input" placeholder="Buscar en visitas"></div>
+            <div class="toolbar">
+              <input id="searchInput" class="input" placeholder="Buscar en visitas">
+              <input class="input" type="date" data-date-from aria-label="Fecha inicial">
+              <input class="input" type="date" data-date-to aria-label="Fecha final">
+            </div>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>Cliente</th><th>Fecha</th><th>Llegada</th><th>Salida</th><th>Observaciones</th><th>Proxima visita</th><th>Ubicacion</th><th>Estado</th><th>Acciones</th></tr></thead>

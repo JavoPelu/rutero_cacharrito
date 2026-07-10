@@ -1,5 +1,7 @@
 const db = require('../config/db');
 
+const ESTADOS_VISITA = ['compro', 'no_compro', 'cerrado', 'reprogramado', 'otro'];
+
 function validarGps({ latitud, longitud, precision_gps }) {
   const lat = Number(latitud);
   const lng = Number(longitud);
@@ -57,24 +59,28 @@ async function iniciar(data) {
 }
 
 async function finalizar(id, data) {
-  const { hora_salida, compro, observaciones, proxima_visita } = data;
+  const { hora_salida, compro, estado, observaciones, proxima_visita } = data;
+  const estadoFinal = estado || (compro === true ? 'compro' : 'no_compro');
 
-  if (!hora_salida || typeof compro !== 'boolean') {
-    const error = new Error('Hora de salida y resultado de compra son obligatorios');
+  if (!hora_salida || !ESTADOS_VISITA.includes(estadoFinal)) {
+    const error = new Error('Hora de salida y estado de visita son obligatorios');
     error.status = 400;
     throw error;
   }
+
+  const comproFinal = typeof compro === 'boolean' ? compro : estadoFinal === 'compro';
 
   const result = await db.query(
     `UPDATE visitas
      SET hora_salida = $1,
          compro = $2,
-         observaciones = COALESCE($3, observaciones),
-         proxima_visita = $4,
+         estado = $3,
+         observaciones = COALESCE($4, observaciones),
+         proxima_visita = $5,
          actualizado_en = NOW()
-     WHERE id = $5
+     WHERE id = $6
      RETURNING *`,
-    [hora_salida, compro, observaciones || null, proxima_visita || null, id]
+    [hora_salida, comproFinal, estadoFinal, observaciones || null, proxima_visita || null, id]
   );
 
   if (!result.rows[0]) {

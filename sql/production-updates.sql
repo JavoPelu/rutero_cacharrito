@@ -49,6 +49,18 @@ ALTER TABLE clientes
   ADD COLUMN IF NOT EXISTS vendedor_id INTEGER,
   ADD COLUMN IF NOT EXISTS foto_url TEXT;
 
+ALTER TABLE visitas
+  ADD COLUMN IF NOT EXISTS estado VARCHAR(30);
+
+UPDATE visitas
+SET estado = CASE
+  WHEN hora_salida IS NULL THEN NULL
+  WHEN compro IS TRUE THEN 'compro'
+  WHEN compro IS FALSE THEN 'no_compro'
+  ELSE estado
+END
+WHERE estado IS NULL;
+
 DO $$
 BEGIN
   IF NOT EXISTS (

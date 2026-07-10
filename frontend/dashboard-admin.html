@@ -31,7 +31,7 @@
           <div class="metrics-grid">
             <article class="metric"><div class="metric-label">Clientes</div><div id="metricClientes" class="metric-value">0</div><div class="metric-note">Registrados</div></article>
             <article class="metric"><div class="metric-label">Vendedores activos</div><div id="metricVendedores" class="metric-value">0</div><div class="metric-note">Equipo comercial</div></article>
-            <article class="metric"><div class="metric-label">Visitas</div><div id="metricVisitas" class="metric-value">0</div><div class="metric-note">Historial total</div></article>
+            <article class="metric"><div class="metric-label">Visitas</div><div id="metricVisitas" class="metric-value">0</div><div class="metric-note">Dia filtrado</div></article>
             <article class="metric"><div class="metric-label">Compras</div><div id="metricCompras" class="metric-value">0</div><div class="metric-note">Cierres reportados</div></article>
           </div>
           <section class="panel" style="margin-bottom: 18px;">
@@ -46,7 +46,10 @@
             </div>
           </section>
           <section class="panel">
-            <div class="panel-header"><h2 class="panel-title">Ultimas visitas</h2></div>
+            <div class="panel-header">
+              <h2 class="panel-title">Visitas del dia</h2>
+              <input id="adminDateFilter" class="input" type="date" aria-label="Filtrar visitas por fecha">
+            </div>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>Cliente</th><th>Vendedor</th><th>Fecha</th><th>Llegada</th><th>Observaciones</th><th>Proxima visita</th><th>Ubicacion</th><th>Estado</th><th>Acciones</th></tr></thead>

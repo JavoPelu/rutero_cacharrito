@@ -19,11 +19,13 @@
         </header>
         <section class="content">
           <div class="page-header">
-            <div class="page-title"><h1>Visitas</h1><p>Consulta el historial completo con filtros por cliente y vendedor.</p></div>
+            <div class="page-title"><h1>Visitas</h1><p>Consulta el historial por fecha, cliente y vendedor.</p></div>
           </div>
           <section class="panel">
             <div class="toolbar">
               <input id="searchInput" class="input" placeholder="Buscar visita">
+              <input class="input" type="date" data-date-from aria-label="Fecha inicial">
+              <input class="input" type="date" data-date-to aria-label="Fecha final">
               <select id="filterCliente" class="select" data-filter="cliente_id"><option value="">Todos los clientes</option></select>
               <select id="filterVendedor" class="select" data-filter="vendedor_id"><option value="">Todos los vendedores</option></select>
             </div>
