@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Configuracion | Rutero Cacharrito</title>
+    <link rel="stylesheet" href="assets/styles.css">
+  </head>
+  <body data-page="configuracion">
+    <div class="app-shell">
+      <aside id="sidebar" class="sidebar"></aside>
+      <main class="main">
+        <header class="navbar">
+          <div class="navbar-actions">
+            <button id="mobileMenu" class="btn icon-btn mobile-menu" title="Menu">☰</button>
+            <div><strong id="userName"></strong><div class="sidebar-subtitle" id="userRole"></div></div>
+          </div>
+          <div class="navbar-actions"><button class="btn icon-btn" data-theme-toggle title="Tema">☀</button><button id="logoutBtn" class="btn">Salir</button></div>
+        </header>
+        <section class="content">
+          <div class="page-header">
+            <div class="page-title"><h1>Configuracion</h1><p>Preferencias de usuario, seguridad y apariencia.</p></div>
+          </div>
+          <div class="settings-grid">
+            <section class="panel">
+              <div class="panel-header"><h2 class="panel-title">Perfil</h2></div>
+              <div class="visit-card">
+                <div><strong id="profileName"></strong><div class="sidebar-subtitle" id="profileUser"></div></div>
+                <span id="profileRole" class="badge"></span>
+                <button class="btn" data-theme-toggle type="button">Cambiar tema</button>
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel-header"><h2 class="panel-title">Cambiar password</h2></div>
+              <form id="passwordForm" class="visit-card">
+                <label>Password actual <input class="input" name="passwordActual" type="password" required></label>
+                <label>Nuevo password <input class="input" name="passwordNuevo" type="password" minlength="6" required></label>
+                <button class="btn btn-primary" type="submit">Actualizar</button>
+              </form>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div id="loader" class="loader"><div class="spinner"></div></div>
+    <div id="alerts" class="alert-stack"></div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

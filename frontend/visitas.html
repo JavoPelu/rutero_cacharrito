@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Visitas | Rutero Cacharrito</title>
+    <link rel="stylesheet" href="assets/styles.css">
+  </head>
+  <body data-page="visitas">
+    <div class="app-shell">
+      <aside id="sidebar" class="sidebar"></aside>
+      <main class="main">
+        <header class="navbar">
+          <div class="navbar-actions">
+            <button id="mobileMenu" class="btn icon-btn mobile-menu" title="Menu">☰</button>
+            <div><strong id="userName"></strong><div class="sidebar-subtitle" id="userRole"></div></div>
+          </div>
+          <div class="navbar-actions"><button class="btn icon-btn" data-theme-toggle title="Tema">☀</button><button id="logoutBtn" class="btn">Salir</button></div>
+        </header>
+        <section class="content">
+          <div class="page-header">
+            <div class="page-title"><h1>Visitas</h1><p>Consulta el historial completo con filtros por cliente y vendedor.</p></div>
+          </div>
+          <section class="panel">
+            <div class="toolbar">
+              <input id="searchInput" class="input" placeholder="Buscar visita">
+              <select id="filterCliente" class="select" data-filter="cliente_id"><option value="">Todos los clientes</option></select>
+              <select id="filterVendedor" class="select" data-filter="vendedor_id"><option value="">Todos los vendedores</option></select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Cliente</th><th>Vendedor</th><th>Fecha</th><th>Llegada</th><th>Salida</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination"><button id="prevPage" class="btn">Anterior</button><span id="pageInfo"></span><button id="nextPage" class="btn">Siguiente</button></div>
+          </section>
+        </section>
+      </main>
+    </div>
+    <div id="loader" class="loader"><div class="spinner"></div></div>
+    <div id="alerts" class="alert-stack"></div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

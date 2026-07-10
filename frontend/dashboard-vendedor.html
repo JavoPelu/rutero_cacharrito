@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard vendedor | Rutero Cacharrito</title>
+    <link rel="stylesheet" href="assets/styles.css">
+  </head>
+  <body data-page="dashboard-vendedor">
+    <div class="app-shell">
+      <aside id="sidebar" class="sidebar"></aside>
+      <main class="main">
+        <header class="navbar">
+          <div class="navbar-actions">
+            <button id="mobileMenu" class="btn icon-btn mobile-menu" title="Menu">☰</button>
+            <div><strong id="userName"></strong><div class="sidebar-subtitle" id="userRole"></div></div>
+          </div>
+          <div class="navbar-actions">
+            <button class="btn icon-btn" data-theme-toggle title="Tema">☀</button>
+            <button id="logoutBtn" class="btn">Salir</button>
+          </div>
+        </header>
+        <section class="content">
+          <div class="page-header">
+            <div class="page-title">
+              <h1>Mi ruta</h1>
+              <p>Inicia visitas con GPS, registra hora de llegada y finaliza con hora de salida.</p>
+            </div>
+          </div>
+          <div class="metrics-grid">
+            <article class="metric"><div class="metric-label">Mis visitas</div><div id="metricMisVisitas" class="metric-value">0</div><div class="metric-note">Registradas</div></article>
+            <article class="metric"><div class="metric-label">Abiertas</div><div id="metricPendientes" class="metric-value">0</div><div class="metric-note">Sin salida</div></article>
+          </div>
+          <section class="panel" style="margin-bottom: 18px;">
+            <div class="panel-header"><h2 class="panel-title">Registro de visita</h2><button class="btn btn-primary" type="submit" form="startVisitForm">Iniciar visita</button></div>
+            <form id="startVisitForm" class="visit-card">
+              <div class="form-grid">
+                <label>Cliente
+                  <select id="clienteVisita" class="select" name="cliente_id" required></select>
+                </label>
+                <input type="hidden" name="vendedor_id">
+                <label class="span-2">Observaciones
+                  <textarea class="textarea" name="observaciones"></textarea>
+                </label>
+              </div>
+              <div id="visitStatus" class="badge">Esperando inicio de visita</div>
+            </form>
+          </section>
+          <section class="panel">
+            <div class="panel-header"><h2 class="panel-title">Historial de visitas</h2></div>
+            <div class="toolbar"><input id="searchInput" class="input" placeholder="Buscar en visitas"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Cliente</th><th>Fecha</th><th>Llegada</th><th>Salida</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination"><button id="prevPage" class="btn">Anterior</button><span id="pageInfo"></span><button id="nextPage" class="btn">Siguiente</button></div>
+          </section>
+        </section>
+      </main>
+    </div>
+    <div id="modal" class="modal-backdrop">
+      <section class="modal">
+        <div class="modal-header"><h2 id="modalTitle" class="modal-title"></h2><button id="modalClose" class="btn icon-btn" type="button">×</button></div>
+        <form id="modalForm"><div id="modalBody" class="modal-body"></div><div class="modal-footer"><button id="modalCancel" class="btn" type="button">Cancelar</button><button class="btn btn-primary" type="submit">Guardar</button></div></form>
+      </section>
+    </div>
+    <div id="loader" class="loader"><div class="spinner"></div></div>
+    <div id="alerts" class="alert-stack"></div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

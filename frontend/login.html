@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login | Rutero Cacharrito</title>
+    <link rel="stylesheet" href="assets/styles.css">
+  </head>
+  <body class="login-page">
+    <main class="login-panel">
+      <section class="login-card">
+        <div class="login-brand">
+          <div class="brand-mark">RC</div>
+          <div>
+            <strong>Rutero Cacharrito</strong>
+            <p>Control de visitas comerciales</p>
+          </div>
+        </div>
+        <h1>Ingreso seguro</h1>
+        <p>Accede con tu usuario o documento para gestionar rutas, clientes y visitas.</p>
+        <form id="loginForm" class="form-grid" style="margin-top: 24px;">
+          <label class="span-2">Usuario
+            <input class="input" name="usuario" autocomplete="username" required>
+          </label>
+          <label class="span-2">Password
+            <input class="input" name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <button class="btn btn-primary span-2" type="submit">Ingresar</button>
+        </form>
+      </section>
+    </main>
+    <aside class="login-visual">
+      <h2>Rutas claras, visitas trazables y equipos comerciales mejor coordinados.</h2>
+    </aside>
+    <div id="loader" class="loader"><div class="spinner"></div></div>
+    <div id="alerts" class="alert-stack"></div>
+    <script src="assets/app.js"></script>
+  </body>
+</html>
