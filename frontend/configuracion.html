@@ -22,6 +22,15 @@
             <div class="page-title"><h1>Configuracion</h1><p>Preferencias de usuario, seguridad y apariencia.</p></div>
           </div>
           <div class="settings-grid">
+            <section id="businessPanel" class="panel">
+              <div class="panel-header"><h2 class="panel-title">Negocio</h2></div>
+              <form id="businessForm" class="visit-card">
+                <div id="logoPreview"></div>
+                <label>Nombre del negocio <input class="input" name="nombre_negocio" required></label>
+                <label>Logo o foto del negocio <input class="input" name="logo" type="file" accept="image/png,image/jpeg,image/webp"></label>
+                <button class="btn btn-primary" type="submit">Guardar negocio</button>
+              </form>
+            </section>
             <section class="panel">
               <div class="panel-header"><h2 class="panel-title">Perfil</h2></div>
               <div class="visit-card">

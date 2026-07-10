@@ -6,6 +6,7 @@ function signToken(user) {
   return jwt.sign(
     {
       id: user.id,
+      vendedor_id: user.vendedor_id,
       usuario: user.usuario,
       rol: user.rol
     },
@@ -22,9 +23,10 @@ async function login({ usuario, password }) {
   }
 
   const result = await db.query(
-    `SELECT u.id, u.nombres, u.usuario, u.password_hash, u.activo, r.nombre AS rol
+    `SELECT u.id, u.nombres, u.usuario, u.password_hash, u.activo, r.nombre AS rol, v.id AS vendedor_id
      FROM usuarios u
      INNER JOIN roles r ON r.id = u.rol_id
+     LEFT JOIN vendedores v ON v.usuario_id = u.id
      WHERE u.usuario = $1 OR u.documento = $1
      LIMIT 1`,
     [usuario]
@@ -50,6 +52,7 @@ async function login({ usuario, password }) {
     token: signToken(user),
     usuario: {
       id: user.id,
+      vendedor_id: user.vendedor_id,
       nombres: user.nombres,
       usuario: user.usuario,
       rol: user.rol

@@ -2,6 +2,7 @@ const API_BASE = window.APP_API_BASE || '/api';
 const TOKEN_KEY = 'rutero_token';
 const USER_KEY = 'rutero_user';
 const THEME_KEY = 'rutero_theme';
+const MAX_INLINE_IMAGE_MB = 2;
 
 const state = {
   page: 1,
@@ -9,24 +10,26 @@ const state = {
   rows: [],
   filtered: [],
   editing: null,
-  activeVisit: null
+  activeVisit: null,
+  vendedores: [],
+  municipios: []
 };
 
 const routes = {
   admin: [
-    ['dashboard-admin.html', 'Inicio', '⌂'],
-    ['clientes.html', 'Clientes', '□'],
-    ['vendedores.html', 'Vendedores', '◇'],
-    ['visitas.html', 'Visitas', '◉'],
-    ['configuracion.html', 'Configuracion', '⚙']
+    ['dashboard-admin.html', 'Inicio', 'IN'],
+    ['clientes.html', 'Clientes', 'CL'],
+    ['vendedores.html', 'Vendedores', 'VE'],
+    ['municipios.html', 'Municipios', 'MU'],
+    ['visitas.html', 'Visitas', 'VI'],
+    ['configuracion.html', 'Configuracion', 'CO']
   ],
   vendedor: [
-    ['dashboard-vendedor.html', 'Mi ruta', '⌂'],
-    ['clientes.html', 'Clientes', '□'],
-    ['configuracion.html', 'Configuracion', '⚙']
+    ['dashboard-vendedor.html', 'Mi ruta', 'IN'],
+    ['clientes.html', 'Clientes', 'CL'],
+    ['configuracion.html', 'Configuracion', 'CO']
   ]
 };
-
 function qs(selector, root = document) {
   return root.querySelector(selector);
 }
@@ -50,6 +53,31 @@ function getUser() {
 function setUserSession(data) {
   localStorage.setItem(TOKEN_KEY, data.token);
   localStorage.setItem(USER_KEY, JSON.stringify(data.usuario));
+}
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.size) {
+      resolve(null);
+      return;
+    }
+    if (file.size > MAX_INLINE_IMAGE_MB * 1024 * 1024) {
+      reject(new Error(`La imagen no puede superar ${MAX_INLINE_IMAGE_MB} MB`));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function logout() {
@@ -135,9 +163,9 @@ function shell() {
 
   sidebar.innerHTML = `
     <div class="sidebar-header">
-      <div class="brand-mark">RC</div>
+      <div id="brandMark" class="brand-mark">RC</div>
       <div>
-        <div class="sidebar-title">Rutero Cacharrito</div>
+        <div id="businessName" class="sidebar-title">Rutero Cacharrito</div>
         <div class="sidebar-subtitle">${user.rol}</div>
       </div>
     </div>
@@ -152,6 +180,21 @@ function shell() {
   qs('#userRole') && (qs('#userRole').textContent = user.rol);
   qs('#logoutBtn')?.addEventListener('click', logout);
   qs('#mobileMenu')?.addEventListener('click', () => sidebar.classList.toggle('open'));
+  loadBusinessBrand();
+}
+
+async function loadBusinessBrand() {
+  try {
+    const config = await apiFetch('/configuracion');
+    qsa('#businessName').forEach((item) => {
+      item.textContent = config.nombre_negocio || 'Rutero Cacharrito';
+    });
+    qsa('#brandMark').forEach((item) => {
+      item.innerHTML = config.logo_url ? `<img src="${config.logo_url}" alt="">` : 'RC';
+    });
+  } catch (_error) {
+    // La marca no debe bloquear la navegacion si la configuracion aun no existe.
+  }
 }
 
 function formatDate(value) {
@@ -351,6 +394,29 @@ async function populateVendedores(selector) {
   return vendedores;
 }
 
+async function loadMunicipios() {
+  state.municipios = await apiFetch('/municipios?active=true');
+  return state.municipios;
+}
+
+function municipioOptions(selectedCodigo = '') {
+  return state.municipios
+    .map((municipio) => {
+      const selected = String(municipio.codigo) === String(selectedCodigo) ? 'selected' : '';
+      return `<option value="${municipio.codigo}" ${selected}>${municipio.codigo} - ${municipio.nombre}</option>`;
+    })
+    .join('');
+}
+
+function vendedorOptions(selectedId = '') {
+  return state.vendedores
+    .map((vendedor) => {
+      const selected = String(vendedor.id) === String(selectedId || '') ? 'selected' : '';
+      return `<option value="${vendedor.id}" ${selected}>${vendedor.nombre}</option>`;
+    })
+    .join('');
+}
+
 function getPosition() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -440,12 +506,18 @@ async function loadClientes() {
   const user = getUser();
   const canEdit = user.rol === 'administrador';
   qs('#newClientBtn') && (qs('#newClientBtn').style.display = canEdit ? '' : 'none');
-  state.rows = await apiFetch('/clientes');
+  const requests = [apiFetch('/clientes'), loadMunicipios()];
+  if (canEdit) requests.push(apiFetch('/vendedores'));
+  const [clientes, , vendedores = []] = await Promise.all(requests);
+  state.vendedores = vendedores;
+  state.rows = clientes;
   state.filtered = state.rows;
   const render = () => renderTable({
     columns: [
+      { key: 'foto_url', render: (row) => row.foto_url ? `<img class="avatar" src="${row.foto_url}" alt="">` : '<span class="avatar">C</span>' },
       { key: 'nombre_comercial' },
-      { key: 'municipio', render: (row) => row.municipio || row.municipio_id || '-' },
+      { key: 'municipio', render: (row) => row.municipio_codigo ? `${row.municipio_codigo} - ${row.municipio}` : row.municipio || '-' },
+      { key: 'vendedor', render: (row) => row.vendedor || 'Sin asignar' },
       { key: 'contacto', render: (row) => row.contacto || '-' },
       { key: 'telefono', render: (row) => row.telefono || '-' },
       { key: 'activo', render: (row) => boolBadge(row.activo !== false) }
@@ -472,19 +544,32 @@ function clientModal(client = {}) {
     client.id ? 'Editar cliente' : 'Nuevo cliente',
     `
       <div class="form-grid">
-        <label>Municipio ID <input class="input" name="municipio_id" type="number" value="${client.municipio_id || ''}" required></label>
-        <label>Nombre comercial <input class="input" name="nombre_comercial" value="${client.nombre_comercial || ''}" required></label>
-        <label>Razon social <input class="input" name="razon_social" value="${client.razon_social || ''}"></label>
-        <label>NIT <input class="input" name="nit" value="${client.nit || ''}"></label>
-        <label>Contacto <input class="input" name="contacto" value="${client.contacto || ''}"></label>
-        <label>Telefono <input class="input" name="telefono" value="${client.telefono || ''}"></label>
-        <label>Latitud <input class="input" name="latitud" type="number" step="any" value="${client.latitud || ''}"></label>
-        <label>Longitud <input class="input" name="longitud" type="number" step="any" value="${client.longitud || ''}"></label>
-        <label class="span-2">Direccion <input class="input" name="direccion" value="${client.direccion || ''}"></label>
+        <label>Codigo municipio
+          <select class="select" name="municipio_codigo" required>
+            <option value="">Seleccionar municipio</option>
+            ${municipioOptions(client.municipio_codigo)}
+          </select>
+        </label>
+        <label>Asignar vendedor
+          <select class="select" name="vendedor_id">
+            <option value="">Sin asignar</option>
+            ${vendedorOptions(client.vendedor_id)}
+          </select>
+        </label>
+        <label>Nombre comercial <input class="input" name="nombre_comercial" value="${escapeHtml(client.nombre_comercial || '')}" required></label>
+        <label>Razon social <input class="input" name="razon_social" value="${escapeHtml(client.razon_social || '')}"></label>
+        <label>NIT <input class="input" name="nit" value="${escapeHtml(client.nit || '')}"></label>
+        <label>Contacto <input class="input" name="contacto" value="${escapeHtml(client.contacto || '')}"></label>
+        <label>Telefono <input class="input" name="telefono" value="${escapeHtml(client.telefono || '')}"></label>
+        <label>Foto cliente <input class="input" name="foto" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <label class="span-2">Direccion <input class="input" name="direccion" value="${escapeHtml(client.direccion || '')}"></label>
       </div>
     `,
     async (form) => {
       const payload = Object.fromEntries(form.entries());
+      delete payload.foto;
+      const fotoUrl = await fileToDataUrl(form.get('foto'));
+      if (fotoUrl) payload.foto_url = fotoUrl;
       await apiFetch(client.id ? `/clientes/${client.id}` : '/clientes', {
         method: client.id ? 'PUT' : 'POST',
         body: JSON.stringify(payload)
@@ -502,6 +587,7 @@ async function loadVendedores() {
   state.filtered = state.rows;
   const render = () => renderTable({
     columns: [
+      { key: 'foto_url', render: (row) => row.foto_url ? `<img class="avatar" src="${row.foto_url}" alt="">` : '<span class="avatar">V</span>' },
       { key: 'nombre' },
       { key: 'usuario' },
       { key: 'documento', render: (row) => row.documento || '-' },
@@ -532,17 +618,76 @@ function sellerModal(seller = {}) {
         <label>Nombre <input class="input" name="nombre" value="${seller.nombre || ''}" required></label>
         <label>Documento <input class="input" name="documento" value="${seller.documento || ''}"></label>
         <label>Usuario <input class="input" name="usuario" value="${seller.usuario || ''}" required></label>
+        <label>Foto <input class="input" name="foto" type="file" accept="image/png,image/jpeg,image/webp"></label>
         ${seller.id ? '<label>Estado <select class="select" name="activo"><option value="true">Activo</option><option value="false">Inactivo</option></select></label>' : '<label>Password <input class="input" name="password" type="password" value="123456" required></label>'}
       </div>
     `,
     async (form) => {
       const payload = Object.fromEntries(form.entries());
+      delete payload.foto;
+      const fotoUrl = await fileToDataUrl(form.get('foto'));
+      if (fotoUrl) payload.foto_url = fotoUrl;
       if ('activo' in payload) payload.activo = payload.activo === 'true';
       await apiFetch(seller.id ? `/vendedores/${seller.id}` : '/vendedores', {
         method: seller.id ? 'PUT' : 'POST',
         body: JSON.stringify(payload)
       });
       alertMessage(seller.id ? 'Vendedor actualizado' : 'Vendedor creado');
+      location.reload();
+    }
+  );
+}
+
+async function loadMunicipiosAdmin() {
+  if (!document.body.dataset.page?.includes('municipios')) return;
+  requireAuth(['administrador']);
+  state.rows = await apiFetch('/municipios');
+  state.filtered = state.rows;
+  const render = () => renderTable({
+    columns: [
+      { key: 'codigo' },
+      { key: 'nombre' },
+      { key: 'departamento' },
+      { key: 'region', render: (row) => row.region || '-' },
+      { key: 'activo', render: (row) => boolBadge(row.activo !== false) }
+    ],
+    actions: (row) => `<button class="btn" data-edit-city="${row.id}">Editar</button><button class="btn btn-danger" data-delete-city="${row.id}">Desactivar</button>`
+  });
+  render();
+  bindTableControls(render);
+  qs('#newCityBtn')?.addEventListener('click', () => municipioModal());
+  document.addEventListener('click', async (event) => {
+    const edit = event.target.closest('[data-edit-city]');
+    const del = event.target.closest('[data-delete-city]');
+    if (edit) municipioModal(state.rows.find((row) => String(row.id) === edit.dataset.editCity));
+    if (del && confirm('Deseas desactivar este municipio?')) {
+      await apiFetch(`/municipios/${del.dataset.deleteCity}`, { method: 'DELETE' });
+      alertMessage('Municipio desactivado');
+      location.reload();
+    }
+  });
+}
+
+function municipioModal(municipio = {}) {
+  openModal(
+    municipio.id ? 'Editar municipio' : 'Nuevo municipio',
+    `
+      <div class="form-grid">
+        <label>Nombre <input class="input" name="nombre" value="${escapeHtml(municipio.nombre || '')}" required></label>
+        <label>Departamento <input class="input" name="departamento" value="${escapeHtml(municipio.departamento || '')}" required></label>
+        <label>Region <input class="input" name="region" value="${escapeHtml(municipio.region || '')}"></label>
+        ${municipio.id ? `<label>Estado <select class="select" name="activo"><option value="true" ${municipio.activo !== false ? 'selected' : ''}>Activo</option><option value="false" ${municipio.activo === false ? 'selected' : ''}>Inactivo</option></select></label>` : ''}
+        <p class="span-2 sidebar-subtitle">El codigo se genera automaticamente con las primeras 5 letras del nombre mas un consecutivo.</p>
+      </div>
+    `,
+    async (form) => {
+      const payload = Object.fromEntries(form.entries());
+      if ('activo' in payload) payload.activo = payload.activo === 'true';
+      await apiFetch(municipio.id ? `/municipios/${municipio.id}` : '/municipios', {
+        method: municipio.id ? 'PUT' : 'POST',
+        body: JSON.stringify(payload)
+      });
+      alertMessage(municipio.id ? 'Municipio actualizado' : 'Municipio creado');
       location.reload();
     }
   );
@@ -572,6 +717,7 @@ function initConfiguracion() {
   if (!document.body.dataset.page?.includes('configuracion')) return;
   requireAuth(['administrador', 'vendedor']);
   const user = getUser();
+  qs('#businessPanel') && (qs('#businessPanel').style.display = user.rol === 'administrador' ? '' : 'none');
   qs('#profileName').textContent = user.nombres || user.usuario;
   qs('#profileUser').textContent = user.usuario;
   qs('#profileRole').textContent = user.rol;
@@ -588,6 +734,33 @@ function initConfiguracion() {
       alertMessage(error.message, 'error');
     }
   });
+  loadConfiguracionNegocio();
+  qs('#businessForm')?.addEventListener('submit', saveConfiguracionNegocio);
+}
+
+async function loadConfiguracionNegocio() {
+  const form = qs('#businessForm');
+  if (!form) return;
+  const config = await apiFetch('/configuracion');
+  form.nombre_negocio.value = config.nombre_negocio || '';
+  qs('#logoPreview') && (qs('#logoPreview').innerHTML = config.logo_url ? `<img class="logo-preview" src="${config.logo_url}" alt="">` : '<span class="badge">Sin logo</span>');
+}
+
+async function saveConfiguracionNegocio(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const logoUrl = await fileToDataUrl(form.get('logo'));
+  const payload = {
+    nombre_negocio: form.get('nombre_negocio')
+  };
+  if (logoUrl) payload.logo_url = logoUrl;
+  await apiFetch('/configuracion', {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
+  alertMessage('Configuracion del negocio actualizada');
+  await loadBusinessBrand();
+  await loadConfiguracionNegocio();
 }
 
 async function boot() {
@@ -601,6 +774,7 @@ async function boot() {
     await loadDashboardVendedor();
     await loadClientes();
     await loadVendedores();
+    await loadMunicipiosAdmin();
     await loadVisitas();
     initConfiguracion();
   }

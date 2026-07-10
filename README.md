@@ -68,6 +68,20 @@ psql "DATABASE_URL_DE_NEON" -f ruta/al/archivo.sql
 5. Confirma que existan las tablas usadas por el backend: `usuarios`, `roles`, `vendedores`, `clientes`, `municipios` y `visitas`.
 6. Crea al menos un usuario administrador con password cifrado con bcrypt, ya que el login valida `password_hash`.
 
+## Actualizar esquema para las funciones del panel
+
+Antes de usar asignacion de clientes, fotos, configuracion del negocio y busqueda de municipios por codigo, ejecuta en Neon el archivo:
+
+```bash
+psql "DATABASE_URL_DE_NEON" -f sql/production-updates.sql
+```
+
+Tambien puedes copiar el contenido de `sql/production-updates.sql` y pegarlo en el SQL Editor de Neon.
+
+El campo `municipios.codigo` se genera con las primeras 5 letras del nombre del municipio mas un consecutivo. Ejemplo: `Rionegro` queda como `RIONE1`. Si hay otro municipio con el mismo prefijo, queda como `RIONE2`.
+
+Las fotos se guardan como data URL en la base de datos y el frontend limita cada imagen a 2 MB. Para uso intensivo en produccion conviene migrarlas luego a Vercel Blob, S3 o Cloudinary y guardar solo la URL.
+
 ## Subir el proyecto a GitHub
 
 ```bash
@@ -121,6 +135,7 @@ Rutas principales:
 - `/dashboard-vendedor.html`
 - `/clientes.html`
 - `/vendedores.html`
+- `/municipios.html`
 - `/visitas.html`
 - `/configuracion.html`
 

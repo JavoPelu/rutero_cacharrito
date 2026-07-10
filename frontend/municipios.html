@@ -3,28 +3,28 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Clientes | Rutero Cacharrito</title>
+    <title>Municipios | Rutero Cacharrito</title>
     <link rel="stylesheet" href="assets/styles.css">
   </head>
-  <body data-page="clientes">
+  <body data-page="municipios">
     <div class="app-shell">
       <aside id="sidebar" class="sidebar"></aside>
       <main class="main">
         <header class="navbar">
           <div class="navbar-actions">
-            <button id="mobileMenu" class="btn icon-btn mobile-menu" title="Menu">☰</button>
+            <button id="mobileMenu" class="btn icon-btn mobile-menu" title="Menu">Menu</button>
             <div><strong id="userName"></strong><div class="sidebar-subtitle" id="userRole"></div></div>
           </div>
-          <div class="navbar-actions"><button class="btn icon-btn" data-theme-toggle title="Tema">☀</button><button id="logoutBtn" class="btn">Salir</button></div>
+          <div class="navbar-actions"><button class="btn icon-btn" data-theme-toggle title="Tema">Tema</button><button id="logoutBtn" class="btn">Salir</button></div>
         </header>
         <section class="content">
           <div class="page-header">
-            <div class="page-title"><h1>Clientes</h1><p>Consulta, crea y actualiza clientes de la ruta comercial.</p></div>
-            <button id="newClientBtn" class="btn btn-primary">Nuevo cliente</button>
+            <div class="page-title"><h1>Municipios</h1><p>Crea y actualiza municipios. El codigo se genera automaticamente desde el nombre.</p></div>
+            <button id="newCityBtn" class="btn btn-primary">Nuevo municipio</button>
           </div>
           <section class="panel">
             <div class="toolbar">
-              <input id="searchInput" class="input" placeholder="Buscar por nombre, municipio, contacto o telefono">
+              <input id="searchInput" class="input" placeholder="Buscar por codigo, nombre, departamento o region">
               <select class="select" data-filter="activo">
                 <option value="">Todos los estados</option>
                 <option value="true">Activos</option>
@@ -33,7 +33,7 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Foto</th><th>Cliente</th><th>Municipio</th><th>Vendedor</th><th>Contacto</th><th>Telefono</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <thead><tr><th>Codigo</th><th>Nombre</th><th>Departamento</th><th>Region</th><th>Estado</th><th>Acciones</th></tr></thead>
                 <tbody id="tableBody"></tbody>
               </table>
             </div>
@@ -44,7 +44,7 @@
     </div>
     <div id="modal" class="modal-backdrop">
       <section class="modal">
-        <div class="modal-header"><h2 id="modalTitle" class="modal-title"></h2><button id="modalClose" class="btn icon-btn" type="button">×</button></div>
+        <div class="modal-header"><h2 id="modalTitle" class="modal-title"></h2><button id="modalClose" class="btn icon-btn" type="button">x</button></div>
         <form id="modalForm"><div id="modalBody" class="modal-body"></div><div class="modal-footer"><button id="modalCancel" class="btn" type="button">Cancelar</button><button class="btn btn-primary" type="submit">Guardar</button></div></form>
       </section>
     </div>

@@ -11,16 +11,19 @@ const vendedoresRoutes = require('./routes/vendedores');
 const clientesRoutes = require('./routes/clientes');
 const visitasRoutes = require('./routes/visitas');
 const uploadRoutes = require('./routes/upload');
+const municipiosRoutes = require('./routes/municipios');
+const configuracionRoutes = require('./routes/configuracion');
 
 const app = express();
 
 const corsOrigin = process.env.CORS_ORIGIN || '*';
+const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 5);
 
 app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({ origin: corsOrigin, credentials: true }));
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.json({ limit: `${maxUploadMb}mb` }));
+app.use(express.urlencoded({ extended: true, limit: `${maxUploadMb}mb` }));
 app.use(express.static(path.join(__dirname, 'frontend')));
 
 app.use(
@@ -41,6 +44,8 @@ app.use('/api/vendedores', vendedoresRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/visitas', visitasRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/municipios', municipiosRoutes);
+app.use('/api/configuracion', configuracionRoutes);
 
 app.get('/', (_req, res) => {
   res.redirect('/login.html');

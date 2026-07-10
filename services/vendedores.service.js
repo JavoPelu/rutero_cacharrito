@@ -13,7 +13,7 @@ async function getRolVendedorId() {
 
 async function listar() {
   const result = await db.query(
-    `SELECT v.id, v.nombre, v.activo, v.creado_en, u.id AS usuario_id, u.usuario, u.documento
+    `SELECT v.id, v.nombre, v.foto_url, v.activo, v.creado_en, u.id AS usuario_id, u.usuario, u.documento
      FROM vendedores v
      INNER JOIN usuarios u ON u.id = v.usuario_id
      ORDER BY v.nombre ASC`
@@ -22,7 +22,7 @@ async function listar() {
 }
 
 async function crear(data) {
-  const { nombre, documento, usuario, password = '123456' } = data;
+  const { nombre, documento, usuario, password = '123456', foto_url } = data;
   if (!nombre || !usuario || password.length < 6) {
     const error = new Error('Nombre, usuario y contraseña válida son obligatorios');
     error.status = 400;
@@ -43,10 +43,10 @@ async function crear(data) {
     );
 
     const vendedorResult = await client.query(
-      `INSERT INTO vendedores (usuario_id, nombre, activo)
-       VALUES ($1, $2, TRUE)
-       RETURNING id, usuario_id, nombre, activo, creado_en`,
-      [userResult.rows[0].id, nombre]
+      `INSERT INTO vendedores (usuario_id, nombre, foto_url, activo)
+       VALUES ($1, $2, $3, TRUE)
+       RETURNING id, usuario_id, nombre, foto_url, activo, creado_en`,
+      [userResult.rows[0].id, nombre, foto_url || null]
     );
 
     await client.query('COMMIT');
@@ -64,8 +64,8 @@ async function crear(data) {
 }
 
 async function actualizar(id, data) {
-  const { nombre, documento, usuario, activo } = data;
-  if (!nombre && !documento && !usuario && typeof activo !== 'boolean') {
+  const { nombre, documento, usuario, foto_url, activo } = data;
+  if (!nombre && !documento && !usuario && !foto_url && typeof activo !== 'boolean') {
     const error = new Error('No hay datos para actualizar');
     error.status = 400;
     throw error;
@@ -82,12 +82,14 @@ async function actualizar(id, data) {
       throw error;
     }
 
-    if (nombre || typeof activo === 'boolean') {
+    if (nombre || foto_url || typeof activo === 'boolean') {
       await client.query(
         `UPDATE vendedores
-         SET nombre = COALESCE($1, nombre), activo = COALESCE($2, activo)
-         WHERE id = $3`,
-        [nombre || null, typeof activo === 'boolean' ? activo : null, id]
+         SET nombre = COALESCE($1, nombre),
+             foto_url = COALESCE($2, foto_url),
+             activo = COALESCE($3, activo)
+         WHERE id = $4`,
+        [nombre || null, foto_url || null, typeof activo === 'boolean' ? activo : null, id]
       );
     }
 
@@ -146,7 +148,7 @@ async function eliminar(id) {
 
 async function obtenerPorId(id) {
   const result = await db.query(
-    `SELECT v.id, v.nombre, v.activo, v.creado_en, u.id AS usuario_id, u.usuario, u.documento
+    `SELECT v.id, v.nombre, v.foto_url, v.activo, v.creado_en, u.id AS usuario_id, u.usuario, u.documento
      FROM vendedores v
      INNER JOIN usuarios u ON u.id = v.usuario_id
      WHERE v.id = $1`,
