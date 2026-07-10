@@ -335,8 +335,9 @@ function applyFilters(render) {
         return String(row[key]) === filter.value;
       });
       const rowDate = dateOnly(row.fecha);
-      const matchesDateFrom = !dateFrom || (rowDate && rowDate >= dateFrom);
-      const matchesDateTo = !dateTo || (rowDate && rowDate <= dateTo);
+      const isOpenVisit = row.hora_salida === null || row.hora_salida === undefined || row.hora_salida === '';
+      const matchesDateFrom = isOpenVisit || !dateFrom || (rowDate && rowDate >= dateFrom);
+      const matchesDateTo = isOpenVisit || !dateTo || (rowDate && rowDate <= dateTo);
       return matchesSearch && matchesFilters && matchesDateFrom && matchesDateTo;
     });
     state.page = 1;
@@ -545,7 +546,7 @@ async function startVisit(event) {
     const payload = {
       cliente_id: form.get('cliente_id'),
       vendedor_id: form.get('vendedor_id') || user.vendedor_id || user.id,
-      fecha: now.toISOString().slice(0, 10),
+      fecha: todayISO(),
       hora_llegada: formatTime(now),
       observaciones: form.get('observaciones') || null,
       latitud: position.coords.latitude,
