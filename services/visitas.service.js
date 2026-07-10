@@ -2,6 +2,17 @@ const db = require('../config/db');
 
 const ESTADOS_VISITA = ['compro', 'no_compro', 'cerrado', 'reprogramado', 'otro'];
 
+function fechaColombiaISO(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 function validarGps({ latitud, longitud, precision_gps }) {
   const lat = Number(latitud);
   const lng = Number(longitud);
@@ -30,7 +41,7 @@ async function listar() {
 }
 
 async function iniciar(data) {
-  const { cliente_id, vendedor_id, fecha, hora_llegada, observaciones, latitud, longitud, precision_gps } = data;
+  const { cliente_id, vendedor_id, hora_llegada, observaciones, latitud, longitud, precision_gps } = data;
 
   if (!cliente_id || !vendedor_id || !hora_llegada || !validarGps({ latitud, longitud, precision_gps })) {
     const error = new Error('Cliente, vendedor, hora de llegada y GPS válido son obligatorios');
@@ -41,12 +52,12 @@ async function iniciar(data) {
   const result = await db.query(
     `INSERT INTO visitas
      (cliente_id, vendedor_id, fecha, hora_llegada, observaciones, latitud, longitud, precision_gps)
-     VALUES ($1, $2, COALESCE($3, CURRENT_DATE), $4, $5, $6, $7, $8)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
     [
       cliente_id,
       vendedor_id,
-      fecha || null,
+      fechaColombiaISO(),
       hora_llegada,
       observaciones || null,
       latitud,
