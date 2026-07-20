@@ -155,8 +155,12 @@ async function apiFetch(path, options = {}) {
   }
 }
 
+function isLoginPage() {
+  return Boolean(document.getElementById('loginForm'));
+}
+
 function requireAuth(roles = []) {
-  if (location.pathname.endsWith('login.html')) return;
+  if (isLoginPage()) return;
   const user = getUser();
   if (!getToken() || !user) {
     location.href = 'login.html';
@@ -376,7 +380,7 @@ function formValue(form, key, fallback = null) {
 }
 
 async function initLogin() {
-  if (!location.pathname.endsWith('login.html')) return;
+  if (!isLoginPage()) return;
   if (getToken() && getUser()) {
     const user = getUser();
     location.href = normalizeRole(user.rol) === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html';
@@ -899,7 +903,7 @@ async function saveConfiguracionNegocio(event) {
 async function boot() {
   initTheme();
   await initLogin();
-  if (!location.pathname.endsWith('login.html')) {
+  if (!isLoginPage()) {
     requireAuth();
     shell();
     bindModal();
