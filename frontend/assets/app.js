@@ -196,7 +196,7 @@ function shell() {
 
   sidebar.innerHTML = `
     <div class="sidebar-header">
-      <div id="brandMark" class="brand-mark">RC</div>
+      <div id="brandMark" class="brand-mark"><img src="assets/logo.svg" alt="Rutero Cacharrito" onerror="this.style.display='none'; this.parentElement.textContent='RC'" /></div>
       <div>
         <div id="businessName" class="sidebar-title">Rutero Cacharrito</div>
         <div class="sidebar-subtitle">${role}</div>
