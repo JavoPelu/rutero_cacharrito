@@ -308,7 +308,7 @@ function mapLink(row) {
   return `<a class="map-link" href="${url}" target="_blank" rel="noopener">Ver mapa<span>${label}</span></a>`;
 }
 
-function renderTable({ columns, actions = () => '' }) {
+function renderTable({ columns, actions = () => '', actionsFirst = false }) {
   const tbody = qs('#tableBody');
   const pageInfo = qs('#pageInfo');
   if (!tbody) return;
@@ -320,8 +320,9 @@ function renderTable({ columns, actions = () => '' }) {
         .map(
           (row) => `
             <tr>
+              ${actionsFirst ? `<td><div class="table-actions">${actions(row)}</div></td>` : ''}
               ${columns.map((column) => `<td class="${column.className || ''}">${column.render ? column.render(row) : row[column.key] ?? '-'}</td>`).join('')}
-              <td><div class="table-actions">${actions(row)}</div></td>
+              ${actionsFirst ? '' : `<td><div class="table-actions">${actions(row)}</div></td>`}
             </tr>
           `
         )
@@ -865,7 +866,8 @@ async function loadVisitas() {
       { key: 'hora_llegada' },
       { key: 'hora_salida', render: (row) => row.hora_salida || '-' },
       { key: 'proxima_visita', render: (row) => formatDate(row.proxima_visita) }
-    ]
+    ],
+    actionsFirst: true
   });
   applyFilters(render)();
   bindTableControls(render);
