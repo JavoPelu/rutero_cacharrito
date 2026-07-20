@@ -1,4 +1,5 @@
-const API_BASE = (typeof window !== 'undefined' && window.APP_API_BASE) ? window.APP_API_BASE : '/api';
+const DEFAULT_API_BASE = 'https://rutero-cacharrito.vercel.app/api';
+const API_BASE = (typeof window !== 'undefined' && window.APP_API_BASE) ? window.APP_API_BASE : DEFAULT_API_BASE;
 const TOKEN_KEY = 'rutero_token';
 const USER_KEY = 'rutero_user';
 const THEME_KEY = 'rutero_theme';
