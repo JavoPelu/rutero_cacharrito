@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Rutero Cacharrito</string>
+    <string name="title_activity_main">Rutero Cacharrito</string>
+    <string name="package_name">com.cacharrito.rutero</string>
+    <string name="custom_url_scheme">com.cacharrito.rutero</string>
+</resources>

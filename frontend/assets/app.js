@@ -1,4 +1,4 @@
-const API_BASE = window.APP_API_BASE || '/api';
+const API_BASE = (typeof window !== 'undefined' && window.APP_API_BASE) ? window.APP_API_BASE : '/api';
 const TOKEN_KEY = 'rutero_token';
 const USER_KEY = 'rutero_user';
 const THEME_KEY = 'rutero_theme';
@@ -51,10 +51,23 @@ function getUser() {
   }
 }
 
+function normalizeAuthPayload(data) {
+  const payload = data?.data ?? data;
+  const token = payload?.token || payload?.accessToken || null;
+  const usuario = payload?.usuario || payload?.user || null;
+  return { token, usuario };
+}
+
 function setUserSession(data) {
-  data.usuario.rol = normalizeRole(data.usuario.rol);
-  localStorage.setItem(TOKEN_KEY, data.token);
-  localStorage.setItem(USER_KEY, JSON.stringify(data.usuario));
+  const session = normalizeAuthPayload(data);
+  if (!session.token || !session.usuario) {
+    throw new Error('La respuesta del servidor no contiene los datos de sesión esperados');
+  }
+
+  const user = { ...session.usuario, rol: normalizeRole(session.usuario.rol) };
+  localStorage.setItem(TOKEN_KEY, session.token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  return { token: session.token, usuario: user };
 }
 
 function normalizeRole(role = '') {
@@ -166,7 +179,7 @@ function requireAuth(roles = []) {
     location.href = 'login.html';
     return;
   }
-  const role = normalizeRole(user.rol);
+  const role = normalizeRole(user?.rol);
   if (roles.length && !roles.map(normalizeRole).includes(role)) {
     location.href = role === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html';
   }
@@ -393,8 +406,8 @@ async function initLogin() {
         method: 'POST',
         body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget)))
       });
-      setUserSession(data);
-      location.href = normalizeRole(data.usuario.rol) === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html';
+      const session = setUserSession(data);
+      location.href = normalizeRole(session.usuario.rol) === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html';
     } catch (error) {
       alertMessage(error.message, 'error');
     }
@@ -917,6 +930,16 @@ async function boot() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  boot().catch((error) => alertMessage(error.message, 'error'));
-});
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    boot().catch((error) => alertMessage(error.message, 'error'));
+  });
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    normalizeAuthPayload,
+    normalizeRole,
+    setUserSession
+  };
+}
