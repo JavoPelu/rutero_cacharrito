@@ -233,7 +233,13 @@ async function loadBusinessBrand() {
 
 function formatDate(value) {
   if (!value) return '-';
-  return String(value).slice(0, 10);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit'
+  }).format(date);
 }
 
 function todayISO() {
@@ -852,15 +858,13 @@ async function loadVisitas() {
   state.filtered = state.rows;
   const render = () => renderTable({
     columns: [
-      { key: 'cliente', render: (row) => row.cliente || '-' },
-      { key: 'vendedor', render: (row) => row.vendedor || '-' },
       { key: 'fecha', render: (row) => formatDate(row.fecha) },
+      { key: 'vendedor', render: (row) => row.vendedor || '-' },
+      { key: 'ubicacion', render: mapLink },
+      { key: 'estado', render: visitStatusBadge },
       { key: 'hora_llegada' },
       { key: 'hora_salida', render: (row) => row.hora_salida || '-' },
-      { key: 'observaciones', className: 'observation-cell', render: (row) => fullObservation(row.observaciones) },
-      { key: 'proxima_visita', render: (row) => formatDate(row.proxima_visita) },
-      { key: 'ubicacion', render: mapLink },
-      { key: 'estado', render: visitStatusBadge }
+      { key: 'proxima_visita', render: (row) => formatDate(row.proxima_visita) }
     ]
   });
   applyFilters(render)();
