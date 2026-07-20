@@ -580,7 +580,10 @@ async function startVisit(event) {
     state.activeVisit = visit;
     qs('#visitStatus').innerHTML = `Visita iniciada a las <strong>${visit.hora_llegada}</strong>. GPS: ${Number(visit.latitud).toFixed(5)}, ${Number(visit.longitud).toFixed(5)}`;
     alertMessage('Visita iniciada correctamente');
-    event.currentTarget.reset();
+    const formElement = event.currentTarget;
+    if (formElement && typeof formElement.reset === 'function') {
+      formElement.reset();
+    }
     await populateClientes('#clienteVisita');
     await refreshVendedorVisits();
   } catch (error) {
@@ -878,7 +881,10 @@ function initConfiguracion() {
         method: 'POST',
         body: JSON.stringify(Object.fromEntries(new FormData(event.currentTarget)))
       });
-      event.currentTarget.reset();
+      const formElement = event.currentTarget;
+      if (formElement && typeof formElement.reset === 'function') {
+        formElement.reset();
+      }
       alertMessage('Password actualizado');
     } catch (error) {
       alertMessage(error.message, 'error');
