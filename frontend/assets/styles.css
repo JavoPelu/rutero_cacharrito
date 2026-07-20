@@ -189,8 +189,16 @@ textarea {
   margin-bottom: 22px;
 }
 
+.sidebar .brand-mark {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  margin-right: 0;
+}
+
 .sidebar-title {
   font-weight: 800;
+  word-break: break-word;
 }
 
 .sidebar-subtitle {
