@@ -551,7 +551,23 @@ function vendedorOptions(selectedId = '') {
 }
 
 function getPosition() {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
+    const geolocationPlugin = window.Capacitor?.Plugins?.Geolocation;
+    if (geolocationPlugin) {
+      try {
+        if (typeof geolocationPlugin.requestPermissions === 'function') {
+          await geolocationPlugin.requestPermissions();
+        }
+        const result = await geolocationPlugin.getCurrentPosition({ enableHighAccuracy: true, timeout: 12000, maximumAge: 0 });
+        if (result && result.coords) {
+          resolve(result);
+          return;
+        }
+      } catch (pluginError) {
+        console.warn('Capacitor Geolocation failed, falling back to browser API', pluginError);
+      }
+    }
+
     if (!navigator.geolocation) {
       reject(new Error('El navegador no soporta geolocalizacion'));
       return;
