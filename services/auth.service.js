@@ -8,7 +8,8 @@ function signToken(user) {
       id: user.id,
       vendedor_id: user.vendedor_id,
       usuario: user.usuario,
-      rol: user.rol
+      rol: user.rol,
+      es_repartidor: user.es_repartidor === true
     },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
@@ -23,7 +24,8 @@ async function login({ usuario, password }) {
   }
 
   const result = await db.query(
-    `SELECT u.id, u.nombres, u.usuario, u.password_hash, u.activo, r.nombre AS rol, v.id AS vendedor_id
+    `SELECT u.id, u.nombres, u.usuario, u.password_hash, u.activo, r.nombre AS rol,
+            v.id AS vendedor_id, COALESCE(v.es_repartidor, FALSE) AS es_repartidor
      FROM usuarios u
      INNER JOIN roles r ON r.id = u.rol_id
      LEFT JOIN vendedores v ON v.usuario_id = u.id
@@ -55,7 +57,8 @@ async function login({ usuario, password }) {
       vendedor_id: user.vendedor_id,
       nombres: user.nombres,
       usuario: user.usuario,
-      rol: user.rol
+      rol: user.rol,
+      es_repartidor: user.es_repartidor === true
     }
   };
 }

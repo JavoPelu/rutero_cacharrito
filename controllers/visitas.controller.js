@@ -10,7 +10,7 @@ async function listar(_req, res, next) {
 
 async function iniciar(req, res, next) {
   try {
-    res.status(201).json({ ok: true, data: await visitasService.iniciar(req.body) });
+    res.status(201).json({ ok: true, data: await visitasService.iniciar(req.body, req.user) });
   } catch (error) {
     next(error);
   }
@@ -18,7 +18,7 @@ async function iniciar(req, res, next) {
 
 async function finalizar(req, res, next) {
   try {
-    res.json({ ok: true, data: await visitasService.finalizar(req.params.id, req.body) });
+    res.json({ ok: true, data: await visitasService.finalizar(req.params.id, req.body, req.user) });
   } catch (error) {
     next(error);
   }
@@ -26,7 +26,7 @@ async function finalizar(req, res, next) {
 
 async function listarPorVendedor(req, res, next) {
   try {
-    res.json({ ok: true, data: await visitasService.listarPorVendedor(req.params.id) });
+    res.json({ ok: true, data: await visitasService.listarPorVendedor(req.params.id, req.user) });
   } catch (error) {
     next(error);
   }
@@ -34,7 +34,7 @@ async function listarPorVendedor(req, res, next) {
 
 async function listarPorCliente(req, res, next) {
   try {
-    res.json({ ok: true, data: await visitasService.listarPorCliente(req.params.id) });
+    res.json({ ok: true, data: await visitasService.listarPorCliente(req.params.id, req.user) });
   } catch (error) {
     next(error);
   }

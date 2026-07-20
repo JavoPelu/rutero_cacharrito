@@ -247,6 +247,9 @@ function visitStatusBadge(row) {
   if (estado === 'cerrado') return '<span class="badge success">Cerrado</span>';
   if (estado === 'reprogramado') return '<span class="badge warning">Reprogramado</span>';
   if (estado === 'otro') return '<span class="badge">Otro</span>';
+  if (estado === 'pedido_entregado') return '<span class="badge success">Pedido entregado</span>';
+  if (estado === 'cambios_entregados_recogidos') return '<span class="badge success">Cambios entregados/recogidos</span>';
+  if (estado === 'cliente_cerrado') return '<span class="badge warning">Cliente cerrado</span>';
   return row.compro ? '<span class="badge success">Compr&oacute;</span>' : '<span class="badge danger">No Compr&oacute;</span>';
 }
 
@@ -574,17 +577,28 @@ async function finishVisit(id = null) {
     alertMessage('No hay una visita activa para finalizar', 'error');
     return;
   }
+  const esRepartidor = getUser()?.es_repartidor === true;
+  const opcionesEstado = esRepartidor
+    ? `
+      <option value="pedido_entregado">Pedido entregado</option>
+      <option value="cambios_entregados_recogidos">Cambios entregados y/o recogidos</option>
+      <option value="cliente_cerrado">Cliente cerrado</option>
+    `
+    : `
+      <option value="compro">Compr&oacute;</option>
+      <option value="no_compro">No Compr&oacute;</option>
+      <option value="cerrado">Cerrado</option>
+      <option value="reprogramado">Reprogramado</option>
+      <option value="otro">Otro</option>
+    `;
+
   openModal(
     'Finalizar visita',
     `
       <div class="form-grid">
         <label>Estado
           <select class="select" name="estado" required>
-            <option value="compro">Compr&oacute;</option>
-            <option value="no_compro">No Compr&oacute;</option>
-            <option value="cerrado">Cerrado</option>
-            <option value="reprogramado">Reprogramado</option>
-            <option value="otro">Otro</option>
+            ${opcionesEstado}
           </select>
         </label>
         <label>Proxima visita

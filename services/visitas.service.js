@@ -1,6 +1,15 @@
 const db = require('../config/db');
 
-const ESTADOS_VISITA = ['compro', 'no_compro', 'cerrado', 'reprogramado', 'otro'];
+const ESTADOS_VENDEDOR = ['compro', 'no_compro', 'cerrado', 'reprogramado', 'otro'];
+const ESTADOS_REPARTIDOR = ['pedido_entregado', 'cambios_entregados_recogidos', 'cliente_cerrado'];
+const ESTADOS_VISITA = [...ESTADOS_VENDEDOR, ...ESTADOS_REPARTIDOR];
+
+function estadosPermitidos(user = {}) {
+  if (user.rol === 'administrador') {
+    return ESTADOS_VISITA;
+  }
+  return user.es_repartidor ? ESTADOS_REPARTIDOR : ESTADOS_VENDEDOR;
+}
 
 function fechaColombiaISO(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -40,8 +49,12 @@ async function listar() {
   return result.rows;
 }
 
-async function iniciar(data) {
-  const { cliente_id, vendedor_id, hora_llegada, observaciones, latitud, longitud, precision_gps } = data;
+async function iniciar(data, user = {}) {
+  const { cliente_id, hora_llegada, observaciones, latitud, longitud, precision_gps } = data;
+
+  // El vendedor_id nunca se toma del body: un vendedor solo puede iniciar
+  // visitas a su propio nombre. El admin sí puede indicar cualquiera.
+  const vendedor_id = user.rol === 'administrador' ? data.vendedor_id : user.vendedor_id;
 
   if (!cliente_id || !vendedor_id || !hora_llegada || !validarGps({ latitud, longitud, precision_gps })) {
     const error = new Error('Cliente, vendedor, hora de llegada y GPS válido son obligatorios');
@@ -69,11 +82,27 @@ async function iniciar(data) {
   return result.rows[0];
 }
 
-async function finalizar(id, data) {
+async function finalizar(id, data, user = {}) {
+  const existente = await db.query('SELECT id, vendedor_id, hora_salida FROM visitas WHERE id = $1', [id]);
+  const visita = existente.rows[0];
+
+  if (!visita) {
+    const error = new Error('Visita no encontrada');
+    error.status = 404;
+    throw error;
+  }
+
+  if (user.rol === 'vendedor' && visita.vendedor_id !== user.vendedor_id) {
+    const error = new Error('No puede finalizar visitas de otro vendedor');
+    error.status = 403;
+    throw error;
+  }
+
   const { hora_salida, compro, estado, observaciones, proxima_visita } = data;
+  const permitidos = estadosPermitidos(user);
   const estadoFinal = estado || (compro === true ? 'compro' : 'no_compro');
 
-  if (!hora_salida || !ESTADOS_VISITA.includes(estadoFinal)) {
+  if (!hora_salida || !permitidos.includes(estadoFinal)) {
     const error = new Error('Hora de salida y estado de visita son obligatorios');
     error.status = 400;
     throw error;
@@ -94,16 +123,20 @@ async function finalizar(id, data) {
     [hora_salida, comproFinal, estadoFinal, observaciones || null, proxima_visita || null, id]
   );
 
-  if (!result.rows[0]) {
-    const error = new Error('Visita no encontrada');
-    error.status = 404;
-    throw error;
-  }
-
   return result.rows[0];
 }
 
-async function listarPorVendedor(vendedorId) {
+function puedeVerTodo(user = {}) {
+  return user.rol === 'administrador' || user.es_repartidor === true;
+}
+
+async function listarPorVendedor(vendedorId, user = {}) {
+  if (!puedeVerTodo(user) && Number(vendedorId) !== Number(user.vendedor_id)) {
+    const error = new Error('No puede ver el historial de otro vendedor');
+    error.status = 403;
+    throw error;
+  }
+
   const result = await db.query(
     `SELECT vi.*, c.nombre_comercial AS cliente
      FROM visitas vi
@@ -115,7 +148,19 @@ async function listarPorVendedor(vendedorId) {
   return result.rows;
 }
 
-async function listarPorCliente(clienteId) {
+async function listarPorCliente(clienteId, user = {}) {
+  if (!puedeVerTodo(user)) {
+    const propio = await db.query('SELECT id FROM clientes WHERE id = $1 AND vendedor_id = $2', [
+      clienteId,
+      user.vendedor_id
+    ]);
+    if (!propio.rows[0]) {
+      const error = new Error('No puede ver el historial de un cliente que no es suyo');
+      error.status = 403;
+      throw error;
+    }
+  }
+
   const result = await db.query(
     `SELECT vi.*, v.nombre AS vendedor
      FROM visitas vi
@@ -132,5 +177,7 @@ module.exports = {
   iniciar,
   finalizar,
   listarPorVendedor,
-  listarPorCliente
+  listarPorCliente,
+  ESTADOS_VENDEDOR,
+  ESTADOS_REPARTIDOR
 };

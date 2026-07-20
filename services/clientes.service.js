@@ -30,7 +30,7 @@ async function listar(user = {}) {
   const params = [];
   const where = [];
 
-  if (user.rol === 'vendedor' && user.vendedor_id) {
+  if (user.rol === 'vendedor' && user.vendedor_id && !user.es_repartidor) {
     params.push(user.vendedor_id);
     where.push(`c.vendedor_id = $${params.length}`);
   }
