@@ -16,12 +16,51 @@ const configuracionRoutes = require('./routes/configuracion');
 
 const app = express();
 
-const corsOrigin = process.env.CORS_ORIGIN || '*';
+const corsOrigin = process.env.CORS_ORIGIN || '';
 const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 5);
+
+const defaultCorsOrigins = [
+  'https://rutero-cacharrito.vercel.app',
+  'http://localhost',
+  'https://localhost',
+  'capacitor://localhost'
+];
+
+function normalizeOrigin(origin) {
+  if (!origin) return null;
+  try {
+    const url = new URL(origin);
+    return `${url.protocol}//${url.host}`;
+  } catch (_error) {
+    return origin;
+  }
+}
+
+function parseCorsOrigins(value) {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map(normalizeOrigin);
+}
+
+const allowedCorsOrigins = new Set([
+  ...defaultCorsOrigins,
+  ...parseCorsOrigins(corsOrigin)
+]);
+
+function corsOriginValidator(origin, callback) {
+  if (!origin) return callback(null, true);
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (allowedCorsOrigins.has(normalizedOrigin)) {
+    return callback(null, true);
+  }
+  callback(new Error(`CORS origin denied: ${origin}`));
+}
 
 app.set('trust proxy', 1);
 app.use(helmet());
-app.use(cors({ origin: corsOrigin, credentials: true }));
+app.use(cors({ origin: corsOriginValidator, credentials: true }));
 app.use(express.json({ limit: `${maxUploadMb}mb` }));
 app.use(express.urlencoded({ extended: true, limit: `${maxUploadMb}mb` }));
 app.use(express.static(path.join(__dirname, 'frontend')));
