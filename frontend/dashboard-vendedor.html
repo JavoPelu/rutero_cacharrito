@@ -37,7 +37,9 @@
             <form id="startVisitForm" class="visit-card">
               <div class="form-grid">
                 <label>Cliente
-                  <select id="clienteVisita" class="select" name="cliente_id" required></select>
+                  <input id="clienteVisitaSearch" class="input" type="text" name="cliente_search" placeholder="Buscar cliente por nombre" list="clienteVisitaOptions" autocomplete="off" required>
+                  <datalist id="clienteVisitaOptions"></datalist>
+                  <input type="hidden" id="clienteVisitaId" name="cliente_id">
                 </label>
                 <input type="hidden" name="vendedor_id">
                 <label class="span-2">Observaciones

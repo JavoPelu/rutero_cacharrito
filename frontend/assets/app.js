@@ -1,5 +1,14 @@
 const DEFAULT_API_BASE = 'https://rutero-cacharrito.vercel.app/api';
-const API_BASE = (typeof window !== 'undefined' && window.APP_API_BASE) ? window.APP_API_BASE : DEFAULT_API_BASE;
+function resolveApiBase() {
+  if (typeof window !== 'undefined' && window.APP_API_BASE) {
+    return window.APP_API_BASE;
+  }
+  if (typeof window !== 'undefined' && window.location?.hostname === 'localhost') {
+    return '/api';
+  }
+  return DEFAULT_API_BASE;
+}
+const API_BASE = resolveApiBase();
 const TOKEN_KEY = 'rutero_token';
 const USER_KEY = 'rutero_user';
 const THEME_KEY = 'rutero_theme';
@@ -13,7 +22,8 @@ const state = {
   editing: null,
   activeVisit: null,
   vendedores: [],
-  municipios: []
+  municipios: [],
+  clientesBusqueda: []
 };
 
 const routes = {
@@ -41,6 +51,17 @@ function qsa(selector, root = document) {
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
+}
+
+function hasValidSession() {
+  const token = getToken();
+  const user = getUser();
+  return Boolean(token && user);
+}
+
+function clearSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
 }
 
 function getUser() {
@@ -108,9 +129,8 @@ function fileToDataUrl(file) {
 }
 
 function logout() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
-  location.href = 'login.html';
+  clearSession();
+  window.location.replace('login.html');
 }
 
 function applyTheme(theme) {
@@ -176,13 +196,22 @@ function isLoginPage() {
 function requireAuth(roles = []) {
   if (isLoginPage()) return;
   const user = getUser();
-  if (!getToken() || !user) {
-    location.href = 'login.html';
+  if (!hasValidSession()) {
+    clearSession();
+    window.location.replace('login.html');
     return;
   }
   const role = normalizeRole(user?.rol);
   if (roles.length && !roles.map(normalizeRole).includes(role)) {
-    location.href = role === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html';
+    window.location.replace(role === 'administrador' ? 'dashboard-admin.html' : 'dashboard-vendedor.html');
+  }
+}
+
+function protectSessionOnNavigation() {
+  if (isLoginPage()) return;
+  if (!hasValidSession()) {
+    clearSession();
+    window.location.replace('login.html');
   }
 }
 
@@ -244,9 +273,15 @@ function formatDate(value) {
 
 function todayISO() {
   const today = new Date();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${today.getFullYear()}-${month}-${day}`;
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.formatToParts(today);
+  const values = Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function dateOnly(value) {
@@ -495,10 +530,44 @@ async function refreshVendedorVisits() {
   applyFilters(renderVendedorVisitsTable)();
 }
 
+function buildClienteSearchLabel(cliente = {}) {
+  const nombreComercial = cliente.nombre_comercial || '';
+  const contacto = cliente.contacto || '';
+  return [nombreComercial, contacto].filter(Boolean).join(' - ');
+}
+
+function syncClienteSearchSelection(value = '') {
+  const input = qs('#clienteVisitaSearch');
+  const hidden = qs('#clienteVisitaId');
+  if (!input || !hidden) return;
+
+  const normalizedValue = String(value || '').trim().toLowerCase();
+  if (!normalizedValue) {
+    hidden.value = '';
+    return;
+  }
+
+  const match = state.clientesBusqueda.find((cliente) => {
+    const label = buildClienteSearchLabel(cliente).toLowerCase();
+    return label === normalizedValue || label.includes(normalizedValue);
+  });
+
+  hidden.value = match ? String(match.id) : '';
+}
+
+function bindClienteSearch() {
+  const input = qs('#clienteVisitaSearch');
+  if (!input) return;
+
+  input.addEventListener('input', () => syncClienteSearchSelection(input.value));
+  input.addEventListener('change', () => syncClienteSearchSelection(input.value));
+}
+
 async function loadDashboardVendedor() {
   if (!document.body.dataset.page?.includes('dashboard-vendedor')) return;
   requireAuth(['vendedor', 'administrador']);
-  await populateClientes('#clienteVisita');
+  await populateClienteSearch();
+  bindClienteSearch();
   qsa('[data-date-from], [data-date-to]').forEach((filter) => {
     if (!filter.value) filter.value = todayISO();
   });
@@ -509,6 +578,22 @@ async function loadDashboardVendedor() {
     const button = event.target.closest('[data-end-visit]');
     if (button) finishVisit(button.dataset.endVisit);
   });
+}
+
+async function populateClienteSearch() {
+  const input = qs('#clienteVisitaSearch');
+  const datalist = qs('#clienteVisitaOptions');
+  const hidden = qs('#clienteVisitaId');
+  if (!input || !datalist || !hidden) return [];
+
+  const clientes = await apiFetch('/clientes');
+  state.clientesBusqueda = clientes;
+  datalist.innerHTML = clientes
+    .map((cliente) => `<option value="${escapeHtml(buildClienteSearchLabel(cliente))}"></option>`)
+    .join('');
+  input.value = '';
+  hidden.value = '';
+  return clientes;
 }
 
 async function populateClientes(selector) {
@@ -584,11 +669,17 @@ async function startVisit(event) {
   event.preventDefault();
   try {
     const form = new FormData(event.currentTarget);
+    const clienteId = String(form.get('cliente_id') || '').trim();
+    if (!clienteId) {
+      alertMessage('Selecciona un cliente de la lista para iniciar la visita', 'error');
+      return;
+    }
+
     const position = await getPosition();
     const user = getUser();
     const now = new Date();
     const payload = {
-      cliente_id: form.get('cliente_id'),
+      cliente_id: clienteId,
       vendedor_id: form.get('vendedor_id') || user.vendedor_id || user.id,
       fecha: todayISO(),
       hora_llegada: formatTime(now),
@@ -944,6 +1035,10 @@ async function saveConfiguracionNegocio(event) {
 
 async function boot() {
   initTheme();
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pageshow', protectSessionOnNavigation);
+    window.addEventListener('popstate', protectSessionOnNavigation);
+  }
   await initLogin();
   if (!isLoginPage()) {
     requireAuth();
@@ -969,6 +1064,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     normalizeAuthPayload,
     normalizeRole,
-    setUserSession
+    resolveApiBase,
+    setUserSession,
+    hasValidSession
   };
 }
