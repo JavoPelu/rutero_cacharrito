@@ -52,6 +52,7 @@ async function listar() {
 
 async function iniciar(data, user = {}) {
   const { cliente_id, fecha, hora_llegada, observaciones, latitud, longitud, precision_gps } = data;
+  console.log('[visitas.iniciar] payload:', { cliente_id, fecha, hora_llegada, latitud, longitud });
 
   // El vendedor_id nunca se toma del body: un vendedor solo puede iniciar
   // visitas a su propio nombre. El admin sí puede indicar cualquiera.
@@ -63,13 +64,8 @@ async function iniciar(data, user = {}) {
     throw error;
   }
 
-  // Allow client to provide a fecha (YYYY-MM-DD). Validate it; otherwise use server Colombia date.
-  let fechaValue;
-  if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-    fechaValue = fecha;
-  } else {
-    fechaValue = fechaColombiaISO();
-  }
+  // Always use server-side Colombia date to avoid client/device timezone issues.
+  const fechaValue = fechaColombiaISO();
 
   const result = await db.query(
     `INSERT INTO visitas

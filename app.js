@@ -22,6 +22,7 @@ const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 5);
 const defaultCorsOrigins = [
   'https://rutero-cacharrito.vercel.app',
   'http://localhost',
+  'http://localhost:3000',
   'https://localhost',
   'capacitor://localhost'
 ];
@@ -64,6 +65,16 @@ app.use(cors({ origin: corsOriginValidator, credentials: true }));
 app.use(express.json({ limit: `${maxUploadMb}mb` }));
 app.use(express.urlencoded({ extended: true, limit: `${maxUploadMb}mb` }));
 app.use(express.static(path.join(__dirname, 'frontend')));
+
+// Simple request logger to help trace requests during local testing
+app.use((req, res, next) => {
+  try {
+    console.log('[request]', req.method, req.path, 'Origin:', req.headers.origin || '-');
+  } catch (e) {
+    // ignore logging errors
+  }
+  next();
+});
 
 app.use(
   rateLimit({

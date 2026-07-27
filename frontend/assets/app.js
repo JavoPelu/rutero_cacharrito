@@ -699,6 +699,7 @@ async function startVisit(event) {
       longitud: position.coords.longitude,
       precision_gps: position.coords.accuracy
     };
+    console.log('[startVisit] payload before send:', payload);
     const visit = await apiFetch('/visitas/iniciar', {
       method: 'POST',
       body: JSON.stringify(payload)
