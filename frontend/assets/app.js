@@ -273,9 +273,20 @@ async function loadBusinessBrand() {
 
 function formatDate(value) {
   if (!value) return '-';
+
+  // Si viene como YYYY-MM-DD, no usar Date()
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-');
+    return `${day}/${month}/${year.slice(-2)}`;
+  }
+
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
-  return new Intl.DateTimeFormat('es-ES', {
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat('es-CO', {
     day: '2-digit',
     month: '2-digit',
     year: '2-digit'
