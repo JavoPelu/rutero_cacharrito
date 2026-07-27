@@ -1,4 +1,7 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+// OID 1082 = DATE
+types.setTypeParser(1082, (value) => value);
 
 if (!process.env.DATABASE_URL) {
   console.warn('DATABASE_URL no está configurada.');
@@ -6,7 +9,9 @@ if (!process.env.DATABASE_URL) {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+  ssl: process.env.NODE_ENV === 'production'
+    ? { rejectUnauthorized: false }
+    : undefined,
   max: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000
