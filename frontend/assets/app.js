@@ -74,7 +74,18 @@ function getUser() {
 }
 
 function normalizeAuthPayload(data) {
-  const payload = data?.data ?? data;
+  const candidates = [];
+  let current = data;
+  while (current && typeof current === 'object' && !Array.isArray(current)) {
+    candidates.push(current);
+    if (current.data && current !== current.data) {
+      current = current.data;
+    } else {
+      break;
+    }
+  }
+
+  const payload = candidates.find((item) => item && (item.token || item.accessToken || item.usuario || item.user)) || data;
   const token = payload?.token || payload?.accessToken || null;
   const usuario = payload?.usuario || payload?.user || null;
   return { token, usuario };

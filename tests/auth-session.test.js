@@ -34,3 +34,9 @@ test('reconoce una sesión inválida cuando falta token o usuario', () => {
   };
   assert.equal(hasValidSession(), false);
 });
+
+test('acepta respuestas de login con payload anidado en varios niveles', () => {
+  const payload = normalizeAuthPayload({ data: { data: { token: 'abc', usuario: { rol: 'vendedor' } } } });
+  assert.equal(payload.token, 'abc');
+  assert.equal(payload.usuario.rol, 'vendedor');
+});
